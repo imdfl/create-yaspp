@@ -1,0 +1,30 @@
+{
+	"compilerOptions": {
+		"target": "es2020",
+		"module": "commonjs",
+		"moduleResolution": "Node",
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
+		"sourceMap": true,
+		"allowJs": true,
+		"emitDecoratorMetadata": true,
+		"experimentalDecorators": true,
+		"removeComments": false,
+		"noImplicitAny": true,
+		"strictNullChecks": true,
+		"ignoreDeprecations": "5.0",
+		"forceConsistentCasingInFileNames": true,
+		"newLine": "LF",
+		"lib": [ "ES2020"],
+		"baseUrl": "./",
+		"outDir": "./bin"
+	},
+	"watch": true,
+	"exclude": [
+		"node_modules",
+		"**/*.exclude.*"
+	],
+	"include": [
+		"src/*.ts"
+	]
+}
