@@ -18,6 +18,13 @@ export interface ICYSPOptions {
     readonly defaultLocale?: string;
 }
 
+export interface ICloneOptions {
+	readonly url: string;
+	readonly folderName?: string;
+	readonly branch?: string;
+	readonly dry?: boolean
+}
+
 export interface ICYSPArgv extends Partial<ICYSPOptions> {
 	readonly dry?: boolean;
 	readonly help?: boolean;

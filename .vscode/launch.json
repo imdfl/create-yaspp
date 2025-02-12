@@ -1,0 +1,45 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+		{
+			"name": "Create JS",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "npx ts-node src/create-yaspp --repository git@github.com:imdfl/jehovascript-content.git --content-root content --content-index . --locale-root locales --langs en,he --branch master",
+			"env": {
+				"NODE_OPTIONS": "--inspect"
+			}
+		},
+		{
+			"name": "Create Mel",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "npx ts-node src/create-yaspp --repository git@github.com:tomerlichtash/mels-loop.git --content-root public/content --content-index docs/the-story-of-mel/codex --locale-root src/locales --langs en,he --branch master",
+			"env": {
+				"NODE_OPTIONS": "--inspect"
+			}
+		},
+		{
+			"name": "Dry/Create Mel",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "npx ts-node src/create-yaspp --dry --repository git@github.com:tomerlichtash/mels-loop.git --content-root public/content --content-index docs/the-story-of-mel/codex --locale-root src/locales --langs en,he --branch master",
+			"env": {
+				"NODE_OPTIONS": "--inspect"
+			}
+		},
+		{
+			"name": "Init Mel",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "npx ts-node yaspp/scripts/build/init-yaspp --project .",
+			"env": {
+				"NODE_OPTIONS": "--inspect"
+			}
+		},
+
+    ]
+}

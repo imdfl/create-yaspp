@@ -8,9 +8,10 @@ import { spawn } from "child_process";
 import { parse as parseJSON } from 'json5';
 import readline from "readline";
 
-import type { FileType, ICYSPArgv, ICYSPOptions, IProcessOptions, IProcessOutput, IRemoveFolderOptions, IResponse, IYasppConfig, Mutable } from "./cystypes";
+import type { FileType, ICloneOptions, ICYSPArgv, ICYSPOptions, IMutableProcessOptions, IProcessOptions, IProcessOutput, IRemoveFolderOptions, IResponse, IYasppConfig, Mutable } from "./cystypes";
 
-const ROOT_FOLDER = fsPath.resolve(__dirname, "..");
+const CSY_ROOT = fsPath.resolve(__dirname, "..");
+const PROJECT_ROOT = process.cwd();
 const YASPP_REPO_URL = "git@github.com:imdfl/yaspp.git";
 
 
@@ -27,7 +28,7 @@ function successResult<T>(result: T): IResponse<T> {
 }
 
 async function getVersion(): Promise<IResponse<string>> {
-	const path = fsPath.join(ROOT_FOLDER, "package.json");
+	const path = fsPath.join(CSY_ROOT, "package.json");
 	const pkg = await utils.readJSON(path);
 	return pkg?.version ? successResult(pkg.version) : errorResult("version not found");
 }
@@ -47,43 +48,31 @@ function printHelp(): void {
 	--path/-P <path>: The file system path of the content to copy\n`)
 }
 
+/**
+ * Hard coded destination folder  "site" under cwd
+ * @param path 
+ * @param dry 
+ * @returns 
+ */
 async function copyContent(path: string, dry?: boolean): Promise<IResponse<string>> {
-	const fullPath = fsPath.resolve(ROOT_FOLDER, path);
+	const srcPath = fsPath.resolve(PROJECT_ROOT, path);
+	const sitePath = fsPath.resolve(PROJECT_ROOT, "site");
 	try {
-		const l = await fs.lstat(fullPath);
-		if (!l?.isDirectory()) {
-			return errorResult(`Error copying content: can't find folder ${path} (${fullPath})`);
-		}
-		console.log(`Copying ${path} (${fullPath})`);
+		console.log(`Copying ${path} (${srcPath})`);
 		if (dry) {
 			return successResult("");
 		}
-		return successResult("");
+		const copyErr = await utils.copyFolderContent(srcPath, sitePath);
+		return copyErr ? errorResult(copyErr) : successResult(sitePath);
 	}
 	catch (error) {
-		return errorResult(`Error copying content from ${path} (${fullPath})`);
+		return errorResult(`Error copying content from ${path} (${srcPath})`);
 	}
 }
 
-async function cloneContent(url: string, branch?: string, dry?: boolean): Promise<IResponse<string>> {
-	console.log(`Trying to clone ${url}`);
-	if (dry) {
-		return successResult("");
-	}
-	try {
-		const res = await utils.captureProcessOutput({
-			exe: "git",
-			argv: ["clone", url]
-		})
-	}
-	catch (e) {
-		return errorResult(`Error cloning ${url}:\n${e}`);
-	}
-	return successResult("");
-}
 
 async function generateYaspp(options: ICYSPOptions, dry?: boolean): Promise<IResponse<string>> {
-	const yPath = fsPath.resolve(ROOT_FOLDER, "yaspp.json");
+	const yPath = fsPath.resolve(PROJECT_ROOT, "yaspp.json");
 	try {
 		const y: IYasppConfig = {
 			content: {
@@ -109,7 +98,9 @@ async function generateYaspp(options: ICYSPOptions, dry?: boolean): Promise<IRes
 		if (dry) {
 			console.log("Generating yassp.json:\n", y)
 		}
-		await fs.writeFile(yPath, JSON.stringify(y));
+		else {
+			await fs.writeFile(yPath, JSON.stringify(y, null, '\t'));
+		}
 		return successResult(yPath);
 	}
 	catch (err) {
@@ -124,7 +115,7 @@ function promptArgs() {
 - If there's a default value, Enter one or more spaces to return an empty value\n`);
 }
 
-async function validateArgs(args: ICYSPArgv): Promise<IResponse<ICYSPOptions>> {
+async function getConfiguration(args: ICYSPArgv): Promise<IResponse<ICYSPOptions>> {
 	const options: Partial<Mutable<ICYSPOptions>> = {
 		repository: ""
 	};
@@ -144,7 +135,7 @@ async function validateArgs(args: ICYSPArgv): Promise<IResponse<ICYSPOptions>> {
 		errors.push("Can't specify both path and repository");
 	}
 	if (options.path) {
-		const fullPath = fsPath.resolve(ROOT_FOLDER, options.path);
+		const fullPath = fsPath.resolve(PROJECT_ROOT, options.path);
 		if (!await utils.isFolder(fullPath)) {
 			errors.push(`Content path ${options.path} not found (${fullPath})`);
 		}
@@ -225,10 +216,64 @@ async function validateArgs(args: ICYSPArgv): Promise<IResponse<ICYSPOptions>> {
 	const again = await utils.confirm("Edit this configuration", Boolean(errors.length));
 	if (again) {
 		console.log("==Restart==");
-		return validateArgs(options);
+		return getConfiguration(options);
 	}
 	return errors.length ? errorResult(errors.join('\n')): successResult(options as ICYSPOptions);
 }
+
+function adaptOptionsToPath(options: ICYSPOptions, path: string): ICYSPOptions {
+	if (!path) {
+		return options;
+	}
+	const root = utils.diffPaths(PROJECT_ROOT, path);
+	if (!root) {
+		return options;
+	}
+	function addRoot(path?: string) {
+		return path ? `${root}/${path}`: path
+	}
+	return {
+		...options,
+		contentRoot: addRoot(options.contentRoot)!,
+		styleRoot: addRoot(options.styleRoot),
+		assetsRoot: addRoot(options.assetsRoot),
+		localeRoot: addRoot(options.localeRoot)!
+	}
+}
+
+async function createApp(options: ICYSPOptions, dry?: boolean): Promise<string> {
+	let contentPath = "";
+	const yRes = await utils.cloneRepository({
+		url: YASPP_REPO_URL, branch: "master", dry
+	});
+	if (yRes.error) {
+		return `Clone error: ${yRes.error}`;
+	}
+	if (options.path) {
+		const copyRes = await copyContent(options.path, dry);
+		if (copyRes.error) {
+			return copyRes.error;
+		}
+		contentPath = copyRes.result!;
+	}
+	else if (options.repository) {
+		const cloneRes = await utils.cloneRepository({
+			url: options.repository, 
+			branch: options.branch, 
+			dry,
+			folderName: "site"
+		});
+		if (cloneRes.error) {
+			return cloneRes.error;
+		}
+		contentPath = cloneRes.result!;
+	}
+	const finalOptions = adaptOptionsToPath(options, contentPath);
+
+	const genRes = await generateYaspp(finalOptions, dry)
+	return genRes.error ?? "";
+}
+
 
 async function main(args: ICYSPArgv): Promise<string> {
 	const { dry, version, help, ...rest } = args;
@@ -246,39 +291,123 @@ async function main(args: ICYSPArgv): Promise<string> {
 		console.log(`===yaspp dry run===`);
 	}
 	promptArgs();
-	const validResult = await validateArgs(rest);
+	const validResult = await getConfiguration(rest);
 	if (validResult.error) {
 		return validResult.error;
 	}
-	return await createApp(validResult.result!);
+	return await createApp(validResult.result!, dry);
 }
 
-async function createApp(options: ICYSPOptions, dry?: boolean): Promise<string> {
-	let contentPath = "";
-	if (options.path) {
-		const copyRes = await copyContent(options.path, dry);
-		if (copyRes.error) {
-			return copyRes.error;
-		}
-		contentPath = copyRes.result!;
-	}
-	else if (options.repository) {
-		const cloneRes = await cloneContent(options.repository, options.branch, dry);
-		if (cloneRes.error) {
-			return cloneRes.error;
-		}
-		contentPath = cloneRes.result!;
-	}
-	const yRes = await cloneContent(YASPP_REPO_URL, "master", dry);
-	if (yRes.error) {
-		return `Clone error: ${yRes.error}`;
-	}
-
-	const genRes = await generateYaspp(options, dry)
-	return genRes.error ?? "";
-}
 
 class CYSUtils {
+
+	/**
+	 * Clone a git repo with optional branch name and target folder  name
+	 * @returns either error or the path of the repo clone on the fs
+	 */
+	public async cloneRepository({ url, dry, branch, folderName }: ICloneOptions): Promise<IResponse<string>> {
+		const repoName = url.replace(/^.+\/([^\.]+)\.git\s*$/, "$1");
+		const sitePath  = fsPath.resolve(PROJECT_ROOT, folderName || repoName);
+		console.log(`Cloning repository ${url}`);
+		if (dry) {
+			return successResult(sitePath);
+		}
+		try {
+			await this.removeFolder({ path: sitePath, removeRoot: true });
+			const branchArgs = branch ? ["--branch", branch, "--single-branch"] : [];
+			const args = ["clone", ...branchArgs, url];
+			if (folderName) {
+				args.push(folderName);
+			}
+			const res = await this.captureProcessOutput({
+				exe: "git",
+				argv: args
+			})
+			return successResult(sitePath);
+		}
+		catch (e) {
+			return errorResult(`Error cloning ${url}:\n${e}`);
+		}
+	}
+	
+
+	/**
+	* Both paths point to folders
+	* @param fromPath
+	* @param toPath 
+	*/
+	public diffPaths(fromPath: string, toPath: string): string {
+		const fromParts = fromPath.split(/[\/\\]+/),
+			toParts = toPath.split(/[\/\\]+/);
+		let rest = "";
+		const retParts = [] as string[];
+		for (let ind = 0, len = fromParts.length, toLen = toParts.length; ind < len; ++ind) {
+			if (retParts.length || ind >= toLen) {
+				retParts.push("..");
+			}
+			else if (fromParts[ind] !== toParts[ind]) {
+				rest = toParts.slice(Math.min(ind, toParts.length - 1)).join('/');
+				retParts.push("..");
+			}
+		}
+		if (rest) {
+			retParts.push(rest);
+		}
+		else if (toParts.length > fromParts.length) {
+			retParts.push(...toParts.slice(fromParts.length));
+		}
+
+		const relPath = retParts.join('/');
+		return relPath.length <  toPath.length ? relPath : toPath;
+
+	}
+
+	/**
+	 * Returns an error message, if any
+	 * @param srcPath 
+	 * @param targetPath 
+	 */
+	public async copyFolderContent(srcPath: string, targetPath: string): Promise<string> {
+		if (!await this.isFolder(srcPath)) {
+			return `Folder ${srcPath} not found`;
+		}
+		let err = await this.mkdir(targetPath);
+		if (err) {
+			return err;
+		}
+		if (targetPath.indexOf(srcPath) === 0) {
+			return `Circular copy: ${srcPath} into ${targetPath}`;
+		}
+
+		// clean up old files
+		async function rmTarget() {
+			await utils.removeFolder({ path: targetPath, removeRoot: false });
+		}
+		try {
+			await rmTarget();
+			const list = await fs.readdir(srcPath, { withFileTypes: true});
+			for await (const dirent of list) {
+				const srcChild = fsPath.resolve(srcPath, dirent.name),
+				trgChild = fsPath.resolve(targetPath, dirent.name);
+				if (dirent.isDirectory()) {
+					const childErr = await this.copyFolderContent(srcChild, trgChild);
+					if (childErr) {
+						await rmTarget();
+						return childErr;
+					}
+				}
+				else if (dirent.isFile()) {
+					await fs.copyFile(srcChild, trgChild);
+				}
+			}
+			return "";
+		} 
+		catch (err) {
+			await rmTarget();
+			return `copy failed (${srcPath} to ${targetPath}:\n${err}`;	
+		}
+
+	}
 
 	public async captureProcessOutput({ cwd, exe, argv, env, onData, onError }: IProcessOptions): Promise<IProcessOutput> {
 		const errCB = (onError === true) ?
@@ -358,14 +487,24 @@ class CYSUtils {
 		}
 	}
 
+	/**
+	 * Swallows errors
+	 * @param param0 
+	 * @returns 
+	 */
 	public async removeFolder({ path, removeRoot, mustExist = false }: IRemoveFolderOptions): Promise<boolean> {
 		if (!await this.isFolder(path)) {
 			return !mustExist;
 		}
-		const success = await rimraf(removeRoot ? path : `${path}/*`, {
-			glob: !removeRoot
-		});
-		return success;
+		try {
+			const success = await rimraf(removeRoot ? path : `${path}/*`, {
+				glob: !removeRoot
+			});
+			return success;
+		}
+		catch(err) {
+			return false;
+		}
 	}
 
 	public async isFolder(fspath: string): Promise<boolean> {
@@ -397,7 +536,8 @@ class CYSUtils {
 		}
 		try {
 			await fs.mkdir(path, { recursive: true });
-			return "";
+			const success = await this.isFolder(path);
+			return success ? "" : `Failed to create folder ${path}`;
 		}
 		catch (err) {
 			return `mkdir ${path} failed: ${err}`;
@@ -451,11 +591,22 @@ const args = parseArgs(process.argv.slice(2), {
 	alias: {
 		R: "repository",
 		P: "path",
-		D: "dry"
+		D: "dry",
+		defaultLocale: "default-locale",
+		contentRoot: "content-root",
+		contentIndex: "content-index",
+		localeRoot: "locale-root",
+		assetsRoot: "assets-root",
+		styleRoot: "style-root",
+		styleIndex: "style-index",
+
 	},
 	"boolean": ["version", "dry", "help"],
-	"default": { dry: false },
-	"string": ["repository", "path"],
+	"default": { dry: false, "default-locale": "en"  },
+	"string": ["repository", "path", "branch","langs",
+		"content-root", "content-index",
+		"locale-root", "assets-root", 
+		"style-root", "style-index" ],
 	"unknown": (s: string) => {
 		const isArg = s.charAt(0) === "-";
 		if (isArg) {
@@ -467,7 +618,7 @@ const args = parseArgs(process.argv.slice(2), {
 
 if (unknownArgs.length) {
 	printHelp();
-	exit(`\nUnknown arguments ${unknownArgs}\n`);
+	exit(`Unknown arguments ${unknownArgs}\n`);
 }
 
 main(args)
