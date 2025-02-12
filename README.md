@@ -1,5 +1,5 @@
 # create-yaspp
-Package for creating a [`Yaspp`](https://git@github.com:imdfl/yassp.git) web site
+Package for creating a [`Yaspp`](https://github.com/imdfl/yaspp) web site
 
 To use this package, you do not need to install it. Simply `cd` to the folder in which you want to create your `yaspp` project
 (preferably an empty one) and run the command

@@ -28,6 +28,14 @@ function successResult<T>(result: T): IResponse<T> {
 	}
 }
 
+/**
+ * Translate one string
+ * @param key 
+ */
+function t(key: string): string {
+	return utils.getString(key);
+}
+
 async function getVersion(): Promise<IResponse<string>> {
 	const path = fsPath.join(CSY_ROOT, "package.json");
 	const pkg = await utils.readJSON(path);
@@ -41,14 +49,6 @@ function exit(err?: string): void {
 	process.exit(err ? 1 : 0);
 }
 
-function printHelp(): void {
-	console.log(`Usage: create-yassp
-	--dry/-D: dry run
-	--help: Print this help message
-	--repository/-R <url>: the full URL of the content repository to clone
-	--path/-P <path>: The file system path of the content to copy\n`)
-}
-
 /**
  * Hard coded destination folder  "site" under cwd
  * @param path 
@@ -59,7 +59,7 @@ async function copyContent(path: string, dry?: boolean): Promise<IResponse<strin
 	const srcPath = fsPath.resolve(PROJECT_ROOT, path);
 	const sitePath = fsPath.resolve(PROJECT_ROOT, "site");
 	try {
-		console.log(`Copying ${path} (${srcPath})`);
+		console.log(`${t("copying")} ${path} (${srcPath})`);
 		if (dry) {
 			return successResult("");
 		}
@@ -97,7 +97,7 @@ async function generateYaspp(options: ICYSPOptions, dry?: boolean): Promise<IRes
 			} : undefined
 		};
 		if (dry) {
-			console.log("Generating yassp.json:\n", y)
+			console.log(`${t("generating")} yassp.json:\n`, y)
 		}
 		else {
 			await fs.writeFile(yPath, JSON.stringify(y, null, '\t'));
@@ -109,13 +109,6 @@ async function generateYaspp(options: ICYSPOptions, dry?: boolean): Promise<IRes
 	}
 }
 
-function promptArgs() {
-	console.log("==Project Configuration===\n");
-	console.log(`- Default values are surrounded in [brackets]
-- Mandatory options are marked with *
-- If there's a default value, Enter one or more spaces to return an empty value\n`);
-}
-
 async function getConfiguration(args: ICYSPArgv): Promise<IResponse<ICYSPOptions>> {
 	const options: Partial<Mutable<ICYSPOptions>> = {
 		repository: ""
@@ -124,12 +117,12 @@ async function getConfiguration(args: ICYSPArgv): Promise<IResponse<ICYSPOptions
 	const mandatory = true;
 	if (!args.path) {
 		options.repository = await utils.readInput({
-			msg: "url of site repository to clone", defaultValue: args.repository
+			msg: t("prompt_repo"), defaultValue: args.repository
 		});
 	}
 	if (!options.repository) {
 		options.path = await utils.readInput({
-			msg: "path the site folder on your file system", defaultValue: args.path
+			msg: t("prompt_path"), defaultValue: args.path
 		});
 	}
 	if (options.repository && options.path) {
@@ -142,13 +135,13 @@ async function getConfiguration(args: ICYSPArgv): Promise<IResponse<ICYSPOptions
 		}
 	}
 	options.contentRoot = await utils.readInput({
-		msg: "path of content folder relative to content root", defaultValue: args.contentRoot, mandatory
+		msg: t("prompt_content_folder"), defaultValue: args.contentRoot, mandatory
 	});
 	if (!options.contentRoot) {
 		errors.push(`Content root cannot be empty`);
 	}
 	options.contentIndex = await utils.readInput({
-		msg: "path of the folder that contains your index file, relative to the content root", mandatory,
+		msg: t("prompt_content_index"), mandatory,
 		defaultValue: args.contentIndex
 	});
 	if (!options.contentIndex) {
@@ -156,7 +149,7 @@ async function getConfiguration(args: ICYSPArgv): Promise<IResponse<ICYSPOptions
 	}
 
 	options.localeRoot = await utils.readInput({
-		msg: "path of the locales, relative to the site root",
+		msg: t("prompt_locale_root"),
 		defaultValue: args.localeRoot, mandatory
 	});
 	if (!options.localeRoot) {
@@ -164,12 +157,12 @@ async function getConfiguration(args: ICYSPArgv): Promise<IResponse<ICYSPOptions
 	}
 
 	options.styleRoot = await utils.readInput({
-		msg: "path of styles folder relative to site root",
+		msg: t("prompt_style_root"),
 		defaultValue: args.styleRoot
 	});
 	if (options.styleRoot) {
 		let ind = await utils.readInput({
-			msg: "path of your main scss file, relative to the styles root",
+			msg: t("prompt_style_index"),
 			defaultValue: args.styleIndex, mandatory
 		});
 		if (ind && !ind.includes('.')) {
@@ -181,11 +174,11 @@ async function getConfiguration(args: ICYSPArgv): Promise<IResponse<ICYSPOptions
 		}
 	}
 	options.assetsRoot = await utils.readInput({
-		msg: "path of assets folder relative to site root",
+		msg: t("prompt_assets_root"),
 		defaultValue: args.assetsRoot
 	});
 	options.langs = await utils.readInput({
-		msg: `Site languages, as a comma/space separated list`,
+		msg: t("prompt_langs"),
 		defaultValue: args.langs || "en", mandatory
 	});
 	const langs = utils.parseLangs(options.langs);
@@ -193,7 +186,7 @@ async function getConfiguration(args: ICYSPArgv): Promise<IResponse<ICYSPOptions
 		errors.push(`No legal language specified`);
 	}
 	options.defaultLocale = await utils.readInput({
-		msg: `Default locale`, mandatory,
+		msg: t("prompt_locale"), mandatory,
 		defaultValue: options.defaultLocale || langs[0]
 	});
 	if (!options.defaultLocale || !langs.includes(options.defaultLocale)) {
@@ -201,25 +194,25 @@ async function getConfiguration(args: ICYSPArgv): Promise<IResponse<ICYSPOptions
 	}
 	if (options.repository) {
 		options.branch = await utils.readInput({
-			msg: "branch to clone from site repository",
+			msg: t("prompt_branch"),
 			defaultValue: args.branch
 		})
 	}
 	else if (args.branch) {
 		errors.push(`You specified branch ${args.branch} without a site repository`)
 	}
-	console.log("This is the current configuration:");
+	console.log(t("prompt_print"));
 	console.log(JSON.stringify(options, null, '\t'));
 	if (errors.length) {
-		console.log(`Configuration errors:`);
+		console.log(t("err_config"));
 		console.log(errors.join('\n'));
 	}
-	const again = await utils.confirm("Edit this configuration", Boolean(errors.length));
+	const again = await utils.confirm(t("prompt_edit"), Boolean(errors.length));
 	if (again) {
-		console.log("==Restart==");
+		console.log(t("prompt_restart"));
 		return getConfiguration(options);
 	}
-	return errors.length ? errorResult(errors.join('\n')): successResult(options as ICYSPOptions);
+	return errors.length ? errorResult(errors.join('\n')) : successResult(options as ICYSPOptions);
 }
 
 function adaptOptionsToPath(options: ICYSPOptions, path: string): ICYSPOptions {
@@ -231,7 +224,7 @@ function adaptOptionsToPath(options: ICYSPOptions, path: string): ICYSPOptions {
 		return options;
 	}
 	function addRoot(path?: string) {
-		return path ? `${root}/${path}`: path
+		return path ? `${root}/${path}` : path
 	}
 	return {
 		...options,
@@ -240,6 +233,27 @@ function adaptOptionsToPath(options: ICYSPOptions, path: string): ICYSPOptions {
 		assetsRoot: addRoot(options.assetsRoot),
 		localeRoot: addRoot(options.localeRoot)!
 	}
+}
+
+/**
+ * Loads versions of required tools
+ * @returns error message if any
+ */
+async function loadTools(): Promise<Record<string, string>> {
+	const errors: string[] = [];
+	const ret: Record<string, string> = {};
+	const tools = ["git", "yarn", "npm", "npx"];
+	for await (const tool of tools) {
+		const res = await utils.captureProcessOutput({
+			exe: tool,
+			argv: ["--version"]
+		});
+		if (res.status === 0) {
+			ret[tool] = utils.parseVersion(res.output);
+		}
+	}
+	return ret
+
 }
 
 async function createApp(options: ICYSPOptions, dry?: boolean): Promise<string> {
@@ -259,8 +273,8 @@ async function createApp(options: ICYSPOptions, dry?: boolean): Promise<string> 
 	}
 	else if (options.repository) {
 		const cloneRes = await utils.cloneRepository({
-			url: options.repository, 
-			branch: options.branch, 
+			url: options.repository,
+			branch: options.branch,
 			dry,
 			folderName: "site"
 		});
@@ -275,41 +289,73 @@ async function createApp(options: ICYSPOptions, dry?: boolean): Promise<string> 
 	return genRes.error ?? "";
 }
 
+async function generateFiles(tools: Record<string, string>): Promise<string> {
+	return "";
+}
+
 
 async function main(args: ICYSPArgv): Promise<string> {
 	const { dry, version, help, ...rest } = args;
 	// console.log("create yaspp", args);
+	if (!await utils.loadStrings()) {
+		return "Failed to load strings file";
+	}
 	if (help) {
-		printHelp();
+		console.log(t("help"));
 		exit();
 	};
 	if (version) {
 		const ver = await getVersion();
-		console.log(`create yaspp version ${ver}`);
+		console.log(`${t("version_msg")} ${ver}`);
 		exit();
 	}
 	if (dry) {
-		console.log(`===yaspp dry run===`);
+		console.log(t("dry_run"));
 	}
-	promptArgs();
+	const tools = await loadTools();
+	if (!tools.git || !tools.yarn) {
+		return t("err_tools");
+	}
+	console.log(t("instructions"));
+
 	const validResult = await getConfiguration(rest);
 	if (validResult.error) {
 		return validResult.error;
 	}
-	return await createApp(validResult.result!, dry);
+	const appErr = await createApp(validResult.result!, dry);
+	if (!appErr) {
+		return appErr;
+	}
+	return await generateFiles(tools);
 }
 
 
 class CYSUtils {
+	private _dictionary = new Map<string, string>();
 
+	public async loadStrings(): Promise<boolean> {
+		const dictPath = fsPath.resolve(CSY_ROOT, "data/dict.json");
+		const data = await this.readJSON(dictPath);
+		if (data && typeof data === "object") {
+			Object.entries(data).forEach(([key, value]) => {
+				this._dictionary.set(key, value);
+			})
+			return true;
+		}
+		return false;
+	}
+
+	public getString(key: string): string {
+		return this._dictionary.get(key) ?? (key || "");
+	}
 	/**
 	 * Clone a git repo with optional branch name and target folder  name
 	 * @returns either error or the path of the repo clone on the fs
 	 */
 	public async cloneRepository({ url, dry, branch, folderName }: ICloneOptions): Promise<IResponse<string>> {
 		const repoName = url.replace(/^.+\/([^\.]+)\.git\s*$/, "$1");
-		const sitePath  = fsPath.resolve(PROJECT_ROOT, folderName || repoName);
-		console.log(`Cloning repository ${url}`);
+		const sitePath = fsPath.resolve(PROJECT_ROOT, folderName || repoName);
+		console.log(`${t("cloning")} ${url}`);
 		if (dry) {
 			return successResult(sitePath);
 		}
@@ -330,7 +376,7 @@ class CYSUtils {
 			return errorResult(`Error cloning ${url}:\n${e}`);
 		}
 	}
-	
+
 
 	/**
 	* Both paths point to folders
@@ -359,7 +405,7 @@ class CYSUtils {
 		}
 
 		const relPath = retParts.join('/');
-		return relPath.length <  toPath.length ? relPath : toPath;
+		return relPath.length < toPath.length ? relPath : toPath;
 
 	}
 
@@ -386,10 +432,10 @@ class CYSUtils {
 		}
 		try {
 			await rmTarget();
-			const list = await fs.readdir(srcPath, { withFileTypes: true});
+			const list = await fs.readdir(srcPath, { withFileTypes: true });
 			for await (const dirent of list) {
 				const srcChild = fsPath.resolve(srcPath, dirent.name),
-				trgChild = fsPath.resolve(targetPath, dirent.name);
+					trgChild = fsPath.resolve(targetPath, dirent.name);
 				if (dirent.isDirectory()) {
 					const childErr = await this.copyFolderContent(srcChild, trgChild);
 					if (childErr) {
@@ -402,10 +448,10 @@ class CYSUtils {
 				}
 			}
 			return "";
-		} 
+		}
 		catch (err) {
 			await rmTarget();
-			return `copy failed (${srcPath} to ${targetPath}:\n${err}`;	
+			return `copy failed (${srcPath} to ${targetPath}:\n${err}`;
 		}
 
 	}
@@ -421,11 +467,19 @@ class CYSUtils {
 			try {
 				const output: string[] = [];
 				const errors: string[] = [];
-				console.log(`Running ${exe} ${argv.join(' ')}`);
+				console.log(`${t("running")} ${exe} ${argv.join(' ')}`);
 				const proc = spawn(exe, argv, {
+					shell: true,
 					cwd: cwd || process.cwd(),
 					env: env || {}
 				});
+				proc.on("error", err => {
+					resolve({
+						status: -1,
+						error: [String(err)],
+						output: []
+					});
+				})
 				proc.stderr.on('data', data => {
 					errors.push(String(data));
 					errCB && errCB(String(data));
@@ -503,7 +557,7 @@ class CYSUtils {
 			});
 			return success;
 		}
-		catch(err) {
+		catch (err) {
 			return false;
 		}
 	}
@@ -583,6 +637,21 @@ class CYSUtils {
 			.filter(locale => locRE.test(locale));
 	}
 
+	public parseVersion(data: string | ReadonlyArray<string>): string {
+		if (!data?.length) {
+			return "";
+		}
+		const strs = typeof data === "string" ? [data]
+			: Array.isArray(data) ? data : [];
+		for (const str of strs) {
+			const match = str.match(/\d+\.\d+(?:\.\d+)?/);
+			if (match?.[0]) {
+				return match[0];
+			}
+		}
+		return "";
+	}
+
 }
 
 const utils = new CYSUtils();
@@ -603,11 +672,11 @@ const args = parseArgs(process.argv.slice(2), {
 
 	},
 	"boolean": ["version", "dry", "help"],
-	"default": { dry: false, "default-locale": "en"  },
-	"string": ["repository", "path", "branch","langs",
+	"default": { dry: false, "default-locale": "en" },
+	"string": ["repository", "path", "branch", "langs",
 		"content-root", "content-index",
-		"locale-root", "assets-root", 
-		"style-root", "style-index" ],
+		"locale-root", "assets-root",
+		"style-root", "style-index"],
 	"unknown": (s: string) => {
 		const isArg = s.charAt(0) === "-";
 		if (isArg) {
@@ -618,8 +687,8 @@ const args = parseArgs(process.argv.slice(2), {
 }) as ICYSPArgv;
 
 if (unknownArgs.length) {
-	printHelp();
-	exit(`Unknown arguments ${unknownArgs}\n`);
+	console.error(t("help"));
+	exit(`${t("err_args")} ${unknownArgs}\n`);
 }
 
 main(args)
