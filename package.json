@@ -37,9 +37,11 @@
     "bin/"
   ],
   "scripts": {
+    "clean": "rm -rf site yaspp",
     "build": "tsc",
     "dev": "ts-node src/create-yaspp",
     "lint": "eslint .",
+    "preinit-site": "cd yaspp && yarn",
     "init-site": "ts-node yaspp/scripts/build/init-yaspp --project ."
   }
 }
