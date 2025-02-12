@@ -1,14 +1,15 @@
-#!/usr/bin/env node
+#!/usr/bin/env ts-node
 
 import parseArgs from "minimist";
 import fsPath from "path";
-import { rimraf } from "rimraf";
 import { promises as fs } from "fs";
 import { spawn } from "child_process";
 import { parse as parseJSON } from 'json5';
 import readline from "readline";
 
 import type { FileType, ICloneOptions, ICYSPArgv, ICYSPOptions, IMutableProcessOptions, IProcessOptions, IProcessOutput, IRemoveFolderOptions, IResponse, IYasppConfig, Mutable } from "./cystypes";
+// Import generates an error due to some typing issue in @types/rimraf
+const rimraf = require("rimraf");
 
 const CSY_ROOT = fsPath.resolve(__dirname, "..");
 const PROJECT_ROOT = process.cwd();

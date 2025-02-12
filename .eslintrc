@@ -1,0 +1,23 @@
+{
+	"env": {
+		"browser": true,
+		"es2020": true,
+		"node": true
+	},
+	"extends": [
+		"plugin:import/typescript",
+		"eslint:recommended"
+	],
+	"rules": {
+		"no-inner-declarations": "off",
+		"@typescript-eslint/explicit-module-boundary-types": "off",
+		"@typescript-eslint/no-unsafe-assignment": "off",
+		"@typescript-eslint/no-var-requires": "off",
+		"@typescript-eslint/require-await": "off",
+		"@typescript-eslint/no-unsafe-member-access": "off",
+		"@typescript-eslint/no-unsafe-call": "off",
+		"@typescript-eslint/no-unsafe-return": "off",
+		"no-case-declarations": "off"
+	},
+	"parser": "@typescript-eslint/parser"
+}
