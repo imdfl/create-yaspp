@@ -30,6 +30,7 @@ export interface ICYSPArgv extends Partial<ICYSPOptions> {
 	readonly help?: boolean;
 	readonly version?: boolean;
 	readonly config?: string;
+	readonly autoReply?: boolean;
 	readonly refresh?: boolean;
 }
 

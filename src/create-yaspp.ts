@@ -28,6 +28,10 @@ function successResult<T>(result: T): IResponse<T> {
 	}
 }
 
+function stringify<T extends object>(obj: T): string {
+	return JSON.stringify(obj, null, '\t')
+}
+
 /**
  * Translate one string
  * @param key 
@@ -100,7 +104,7 @@ async function generateYaspp(options: ICYSPOptions, dry?: boolean): Promise<IRes
 			console.log(`${t("generating")} yassp.json:\n`, y)
 		}
 		else {
-			await fs.writeFile(yPath, JSON.stringify(y, null, '\t'));
+			await fs.writeFile(yPath, stringify(y));
 		}
 		return successResult(yPath);
 	}
@@ -112,14 +116,14 @@ async function generateYaspp(options: ICYSPOptions, dry?: boolean): Promise<IRes
 /**
  * Interactively read the full configuration, providing the values in args as defaults
  * @param args 
- * @param refresh if true, don't prompt the user for input, use the provided values
+ * @param autoReply if true, don't prompt the user for input, use the provided values
  * @returns either error or a full configuration
  */
-async function getConfiguration(args: ICYSPArgv, refresh?: boolean): Promise<IResponse<ICYSPOptions>> {
+async function getConfiguration(args: ICYSPArgv, autoReply?: boolean): Promise<IResponse<ICYSPOptions>> {
 	const options: Partial<Mutable<ICYSPOptions>> = {
 		repository: ""
 	};
-	const autoReply = refresh === true;
+	autoReply = autoReply === true;
 	const errors: string[] = [];
 	const mandatory = true;
 	if (!args.path) {
@@ -209,12 +213,12 @@ async function getConfiguration(args: ICYSPArgv, refresh?: boolean): Promise<IRe
 		errors.push(`You specified branch ${args.branch} without a site repository`)
 	}
 	console.log(t("prompt_print"));
-	console.log(JSON.stringify(options, null, '\t'));
+	console.log(stringify(options));
 	if (errors.length) {
 		console.log(t("err_config"));
 		console.log(errors.join('\n'));
 	}
-	if (!refresh) {
+	if (!autoReply) {
 		const again = await utils.confirm(t("prompt_edit"), Boolean(errors.length));
 		if (again) {
 			console.log(t("prompt_restart"));
@@ -265,24 +269,26 @@ async function loadTools(): Promise<Record<string, string>> {
 
 }
 
+async function cloneYaspp(dry?: boolean): Promise<string> {
+	const yRes = await utils.cloneRepository({
+		url: YASPP_REPO_URL, branch: "master", dry
+	});
+	return yRes.error ?
+		`Clone error: ${yRes.error}` : ""
+}
+
 /**
  * Clones/Copies the content and generates yaspp.json
  * @param options 
  * @param dry 
  * @returns 
  */
-async function createApp(options: ICYSPOptions, dry?: boolean): Promise<string> {
+async function copySiteContent(options: ICYSPOptions, dry?: boolean): Promise<IResponse<ICYSPOptions>> {
 	let contentPath = "";
-	const yRes = await utils.cloneRepository({
-		url: YASPP_REPO_URL, branch: "master", dry
-	});
-	if (yRes.error) {
-		return `Clone error: ${yRes.error}`;
-	}
 	if (options.path) {
 		const copyRes = await copyContent(options.path, dry);
 		if (copyRes.error) {
-			return copyRes.error;
+			return errorResult(copyRes.error);
 		}
 		contentPath = copyRes.result!;
 	}
@@ -294,14 +300,13 @@ async function createApp(options: ICYSPOptions, dry?: boolean): Promise<string> 
 			folderName: "site"
 		});
 		if (cloneRes.error) {
-			return cloneRes.error;
+			return errorResult(cloneRes.error);
 		}
 		contentPath = cloneRes.result!;
 	}
 	const finalOptions = adaptOptionsToPath(options, contentPath);
+	return successResult(finalOptions);
 
-	const genRes = await generateYaspp(finalOptions, dry)
-	return genRes.error ?? "";
 }
 
 async function finalizeProject(tools: Record<string, string>): Promise<string> {
@@ -332,12 +337,12 @@ async function finalizeProject(tools: Record<string, string>): Promise<string> {
 	if (initRes.status) {
 		return `Failedto run init-yaspp`;
 	}
-	return "";	
+	return "";
 }
 
 async function generateFiles(options: ICYSPOptions): Promise<string> {
 	try {
-		await fs.writeFile(fsPath.resolve(PROJECT_ROOT, SAVED_CONFIG), JSON.stringify(options, null, '\t'));
+		await fs.writeFile(fsPath.resolve(PROJECT_ROOT, SAVED_CONFIG), stringify(options));
 	}
 	catch (err) {
 		console.error(`Error saving config to ${SAVED_CONFIG}: ${err}`);
@@ -346,7 +351,7 @@ async function generateFiles(options: ICYSPOptions): Promise<string> {
 		{ tmpl: "gitignore.tmpl", path: ".gitignore" },
 		{ tmpl: "package.json.tmpl", path: "package.json" },
 	];
-	for await (const {path, tmpl } of copies) {
+	for await (const { path, tmpl } of copies) {
 		const filePath = fsPath.resolve(PROJECT_ROOT, path);
 		if (!await utils.isFileOrFolder(filePath)) {
 			const tmplData = await utils.readFile(utils.getTemplatePath(tmpl));
@@ -363,7 +368,7 @@ async function generateFiles(options: ICYSPOptions): Promise<string> {
 
 
 async function main(args: ICYSPArgv): Promise<string> {
-	const { dry, version, help, refresh, config, ...rest } = args;
+	const { dry, version, help, autoReply, refresh, config, ...rest } = args;
 	// console.log("create yaspp", args);
 	if (!await utils.loadStrings()) {
 		return "Failed to load strings file";
@@ -385,25 +390,38 @@ async function main(args: ICYSPArgv): Promise<string> {
 		return t("err_tools");
 	}
 	let options: ICYSPOptions | null = null;
-	if (config || refresh) {
+	if (config || autoReply || refresh) {
 		const configPath = fsPath.resolve(PROJECT_ROOT, config || SAVED_CONFIG);
 		options = await utils.readJSON<ICYSPOptions>(configPath);
 		if (!options) {
 			return `${t("err_config_file")} ${config} (${configPath})`;
 		}
 	}
-	if (!refresh) {
+	if (!autoReply) {
 		console.log(t("instructions"));
 	}
-	const validResult = await getConfiguration(options || rest, refresh);
+	const validResult = await getConfiguration(options || rest, autoReply || refresh);
 	if (validResult.error) {
 		return validResult.error;
 	}
 	options = validResult.result!;
-	const appErr = await createApp(options, dry);
-	if (appErr) {
-		return appErr;
+	const siteRes = await copySiteContent(options, dry);
+	if (siteRes.error) {
+		return siteRes.error;
 	}
+	if (refresh) {
+		return "";
+	}
+	const yspErr = await cloneYaspp(dry);
+	if (yspErr) {
+		return yspErr;
+	}
+
+	const genRes = await generateYaspp(siteRes.result!, dry)
+	if (genRes.error) {
+		return genRes.error;
+	}
+
 	const gErr = await generateFiles(options);
 	if (gErr) {
 		return gErr;
@@ -786,6 +804,7 @@ const args = parseArgs(process.argv.slice(2), {
 		R: "repository",
 		P: "path",
 		D: "dry",
+		"autoReply": "auto",
 		defaultLocale: "default-locale",
 		contentRoot: "content-root",
 		contentIndex: "content-index",
@@ -795,7 +814,7 @@ const args = parseArgs(process.argv.slice(2), {
 		styleIndex: "style-index",
 
 	},
-	"boolean": ["version", "dry", "help", "refresh"],
+	"boolean": ["version", "dry", "help", "refresh", "auto"],
 	"default": { dry: false, "default-locale": "en" },
 	"string": ["config", "repository", "path", "branch", "langs",
 		"content-root", "content-index",
