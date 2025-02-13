@@ -29,6 +29,8 @@ export interface ICYSPArgv extends Partial<ICYSPOptions> {
 	readonly dry?: boolean;
 	readonly help?: boolean;
 	readonly version?: boolean;
+	readonly config?: string;
+	readonly refresh?: boolean;
 }
 
 export interface IResponse<T> {

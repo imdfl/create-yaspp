@@ -24,6 +24,8 @@
     "generating": "Generating",
     "err_config": "Configuration errors",
     "err_args": "Unknown arguments",
-    "err_tools": "Create-yaspp requires git and yarn to run properly"
+    "err_tools": "Create-yaspp requires git and yarn to run properly",
+    "err_config_file": "Config file not found or invalid",
+    "err_partial_setup": "The project is set up but some final operations failed"
 
 }   

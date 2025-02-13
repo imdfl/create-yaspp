@@ -14,7 +14,7 @@ const rimraf = require("rimraf");
 const CSY_ROOT = fsPath.resolve(__dirname, "..");
 const PROJECT_ROOT = process.cwd();
 const YASPP_REPO_URL = "git@github.com:imdfl/yaspp.git";
-
+const SAVED_CONFIG = "yaspp.site.json";
 
 function errorResult<T>(err: string): IResponse<T> {
 	return {
@@ -109,20 +109,27 @@ async function generateYaspp(options: ICYSPOptions, dry?: boolean): Promise<IRes
 	}
 }
 
-async function getConfiguration(args: ICYSPArgv): Promise<IResponse<ICYSPOptions>> {
+/**
+ * Interactively read the full configuration, providing the values in args as defaults
+ * @param args 
+ * @param refresh if true, don't prompt the user for input, use the provided values
+ * @returns either error or a full configuration
+ */
+async function getConfiguration(args: ICYSPArgv, refresh?: boolean): Promise<IResponse<ICYSPOptions>> {
 	const options: Partial<Mutable<ICYSPOptions>> = {
 		repository: ""
 	};
+	const autoReply = refresh === true;
 	const errors: string[] = [];
 	const mandatory = true;
 	if (!args.path) {
 		options.repository = await utils.readInput({
-			msg: t("prompt_repo"), defaultValue: args.repository
+			msg: t("prompt_repo"), defaultValue: args.repository, autoReply
 		});
 	}
 	if (!options.repository) {
 		options.path = await utils.readInput({
-			msg: t("prompt_path"), defaultValue: args.path
+			msg: t("prompt_path"), defaultValue: args.path, autoReply
 		});
 	}
 	if (options.repository && options.path) {
@@ -135,14 +142,14 @@ async function getConfiguration(args: ICYSPArgv): Promise<IResponse<ICYSPOptions
 		}
 	}
 	options.contentRoot = await utils.readInput({
-		msg: t("prompt_content_folder"), defaultValue: args.contentRoot, mandatory
+		msg: t("prompt_content_folder"), defaultValue: args.contentRoot, mandatory, autoReply
 	});
 	if (!options.contentRoot) {
 		errors.push(`Content root cannot be empty`);
 	}
 	options.contentIndex = await utils.readInput({
 		msg: t("prompt_content_index"), mandatory,
-		defaultValue: args.contentIndex
+		defaultValue: args.contentIndex, autoReply
 	});
 	if (!options.contentIndex) {
 		errors.push(`Content index cannot be empty`);
@@ -150,7 +157,7 @@ async function getConfiguration(args: ICYSPArgv): Promise<IResponse<ICYSPOptions
 
 	options.localeRoot = await utils.readInput({
 		msg: t("prompt_locale_root"),
-		defaultValue: args.localeRoot, mandatory
+		defaultValue: args.localeRoot, mandatory, autoReply
 	});
 	if (!options.localeRoot) {
 		errors.push(`Locale root cannot be empty`);
@@ -158,12 +165,12 @@ async function getConfiguration(args: ICYSPArgv): Promise<IResponse<ICYSPOptions
 
 	options.styleRoot = await utils.readInput({
 		msg: t("prompt_style_root"),
-		defaultValue: args.styleRoot
+		defaultValue: args.styleRoot, autoReply
 	});
 	if (options.styleRoot) {
 		let ind = await utils.readInput({
 			msg: t("prompt_style_index"),
-			defaultValue: args.styleIndex, mandatory
+			defaultValue: args.styleIndex, mandatory, autoReply
 		});
 		if (ind && !ind.includes('.')) {
 			ind += ".scss";
@@ -175,11 +182,11 @@ async function getConfiguration(args: ICYSPArgv): Promise<IResponse<ICYSPOptions
 	}
 	options.assetsRoot = await utils.readInput({
 		msg: t("prompt_assets_root"),
-		defaultValue: args.assetsRoot
+		defaultValue: args.assetsRoot, autoReply
 	});
 	options.langs = await utils.readInput({
 		msg: t("prompt_langs"),
-		defaultValue: args.langs || "en", mandatory
+		defaultValue: args.langs || "en", mandatory, autoReply
 	});
 	const langs = utils.parseLangs(options.langs);
 	if (langs.length === 0) {
@@ -187,7 +194,7 @@ async function getConfiguration(args: ICYSPArgv): Promise<IResponse<ICYSPOptions
 	}
 	options.defaultLocale = await utils.readInput({
 		msg: t("prompt_locale"), mandatory,
-		defaultValue: options.defaultLocale || langs[0]
+		defaultValue: options.defaultLocale || langs[0], autoReply
 	});
 	if (!options.defaultLocale || !langs.includes(options.defaultLocale)) {
 		errors.push(`Invalid default locale "${options.defaultLocale}"`)
@@ -195,7 +202,7 @@ async function getConfiguration(args: ICYSPArgv): Promise<IResponse<ICYSPOptions
 	if (options.repository) {
 		options.branch = await utils.readInput({
 			msg: t("prompt_branch"),
-			defaultValue: args.branch
+			defaultValue: args.branch, autoReply
 		})
 	}
 	else if (args.branch) {
@@ -207,10 +214,12 @@ async function getConfiguration(args: ICYSPArgv): Promise<IResponse<ICYSPOptions
 		console.log(t("err_config"));
 		console.log(errors.join('\n'));
 	}
-	const again = await utils.confirm(t("prompt_edit"), Boolean(errors.length));
-	if (again) {
-		console.log(t("prompt_restart"));
-		return getConfiguration(options);
+	if (!refresh) {
+		const again = await utils.confirm(t("prompt_edit"), Boolean(errors.length));
+		if (again) {
+			console.log(t("prompt_restart"));
+			return getConfiguration(options);
+		}
 	}
 	return errors.length ? errorResult(errors.join('\n')) : successResult(options as ICYSPOptions);
 }
@@ -256,6 +265,12 @@ async function loadTools(): Promise<Record<string, string>> {
 
 }
 
+/**
+ * Clones/Copies the content and generates yaspp.json
+ * @param options 
+ * @param dry 
+ * @returns 
+ */
 async function createApp(options: ICYSPOptions, dry?: boolean): Promise<string> {
 	let contentPath = "";
 	const yRes = await utils.cloneRepository({
@@ -289,13 +304,65 @@ async function createApp(options: ICYSPOptions, dry?: boolean): Promise<string> 
 	return genRes.error ?? "";
 }
 
-async function generateFiles(tools: Record<string, string>): Promise<string> {
+async function finalizeProject(tools: Record<string, string>): Promise<string> {
+	if (!tools.yarn && !tools.npm) {
+		return "neither yarn nor npm available";
+	}
+	function toCommandLine(script: string, argv: string[]): { exe: string, argv: string[] } {
+		return tools.yarn ? {
+			exe: "yarn",
+			argv: [script].concat(argv)
+		} : {
+			exe: "npm",
+			argv: ["run", script].concat(argv)
+		}
+	}
+	const yarnRes = await utils.captureProcessOutput({
+		cwd: fsPath.resolve(PROJECT_ROOT, "yaspp"),
+		...toCommandLine("install", [])
+	});
+	if (yarnRes.status) {
+		return `Failed to run yarn/npm`;
+	}
+	const initRes = await utils.captureProcessOutput({
+		exe: "npx",
+		argv: ["ts-node", "yaspp/scripts/build/init-yaspp", "--project", " ."]
+	})
+	if (initRes.status) {
+		return `Failedto run init-yaspp`;
+	}
+	return "";	
+}
+
+async function generateFiles(options: ICYSPOptions): Promise<string> {
+	try {
+		await fs.writeFile(fsPath.resolve(PROJECT_ROOT, SAVED_CONFIG), JSON.stringify(options, null, '\t'));
+	}
+	catch (err) {
+		console.error(`Error saving config to ${SAVED_CONFIG}: ${err}`);
+	}
+	const copies = [
+		{ tmpl: "gitignore.tmpl", path: ".gitignore" },
+		{ tmpl: "package.json.tmpl", path: "package.json" },
+	];
+	for await (const {path, tmpl } of copies) {
+		const filePath = fsPath.resolve(PROJECT_ROOT, path);
+		if (!await utils.isFileOrFolder(filePath)) {
+			const tmplData = await utils.readFile(utils.getTemplatePath(tmpl));
+			if (!tmplData) {
+				console.error(`Can't find ${path} template`);
+			}
+			else if (!await utils.writeFile(filePath, tmplData)) {
+				console.error(`Failed to save ${path}`)
+			}
+		}
+	}
 	return "";
 }
 
 
 async function main(args: ICYSPArgv): Promise<string> {
-	const { dry, version, help, ...rest } = args;
+	const { dry, version, help, refresh, config, ...rest } = args;
 	// console.log("create yaspp", args);
 	if (!await utils.loadStrings()) {
 		return "Failed to load strings file";
@@ -310,28 +377,50 @@ async function main(args: ICYSPArgv): Promise<string> {
 		exit();
 	}
 	if (dry) {
-		console.log(t("dry_run"));
+		console.log(`===${("dry_run")}===`);
 	}
 	const tools = await loadTools();
 	if (!tools.git || !tools.yarn) {
 		return t("err_tools");
 	}
-	console.log(t("instructions"));
-
-	const validResult = await getConfiguration(rest);
+	let options: ICYSPOptions | null = null;
+	if (config || refresh) {
+		const configPath = fsPath.resolve(PROJECT_ROOT, config || SAVED_CONFIG);
+		options = await utils.readJSON<ICYSPOptions>(configPath);
+		if (!options) {
+			return `${t("err_config_file")} ${config} (${configPath})`;
+		}
+	}
+	if (!refresh) {
+		console.log(t("instructions"));
+	}
+	const validResult = await getConfiguration(options || rest, refresh);
 	if (validResult.error) {
 		return validResult.error;
 	}
-	const appErr = await createApp(validResult.result!, dry);
+	options = validResult.result!;
+	const appErr = await createApp(options, dry);
 	if (!appErr) {
 		return appErr;
 	}
-	return await generateFiles(tools);
+	const gErr = await generateFiles(options);
+	if (gErr) {
+		return gErr;
+	}
+	const fErr = await finalizeProject(tools);
+	if (fErr) {
+		console.error(t("err_partial_setup"));
+	}
+	return "";
 }
 
 
 class CYSUtils {
 	private _dictionary = new Map<string, string>();
+
+	public getTemplatePath(name: string): string {
+		return fsPath.join(__dirname, `../data/${name}`);
+	}
 
 	public async loadStrings(): Promise<boolean> {
 		const dictPath = fsPath.resolve(CSY_ROOT, "data/dict.json");
@@ -507,6 +596,23 @@ class CYSUtils {
 			}
 		})
 	}
+
+	/**
+ * Tries to parse the content of the file at `path`, swallows errors
+ * @param path 
+ * @returns 
+ */
+	public async readFile(path: string): Promise<string | null> {
+		try {
+			const str = await fs.readFile(path, "utf-8");
+			return str
+		}
+		catch (err) {
+			console.error(`Error reading data from ${path}: ${err}`);
+			return null;
+		}
+	}
+
 	/**
 	 * Tries to parse the content of the file at `path`, swallows errors
 	 * @param path 
@@ -514,11 +620,14 @@ class CYSUtils {
 	 */
 	public async readJSON<T = Record<string, string>>(path: string): Promise<T | null> {
 		try {
-			const str = await fs.readFile(path, "utf-8");
+			const str = await this.readFile(path);
+			if (!str) {
+				return null;
+			}
 			return parseJSON<T>(str);
 		}
 		catch (err) {
-			console.error(`Error reading json data from ${path}: ${err}`);
+			console.error(`Error parsing json data from ${path}: ${err}`);
 			return null;
 		}
 	}
@@ -562,6 +671,17 @@ class CYSUtils {
 		}
 	}
 
+	public async writeFile(path: string, data: string): Promise<boolean> {
+		try {
+			await fs.writeFile(path, data);
+			return true;
+		}
+		catch (err) {
+			console.error(`Error saving to ${path}`);
+			return false;
+		}
+	}
+
 	public async isFolder(fspath: string): Promise<boolean> {
 		const t = await this.getFileType(fspath);
 		return t === "folder";
@@ -599,7 +719,10 @@ class CYSUtils {
 		}
 	}
 
-	public readInput(options: { msg: string, defaultValue?: string, mandatory?: boolean }): Promise<string> {
+	public readInput(options: { msg: string, defaultValue?: string, mandatory?: boolean, autoReply?: boolean }): Promise<string> {
+		if (options.autoReply) {
+			return Promise.resolve(options.defaultValue || "");
+		}
 		const rl = readline.createInterface({
 			input: process.stdin,
 			output: process.stdout
@@ -671,9 +794,9 @@ const args = parseArgs(process.argv.slice(2), {
 		styleIndex: "style-index",
 
 	},
-	"boolean": ["version", "dry", "help"],
+	"boolean": ["version", "dry", "help", "refresh"],
 	"default": { dry: false, "default-locale": "en" },
-	"string": ["repository", "path", "branch", "langs",
+	"string": ["config", "repository", "path", "branch", "langs",
 		"content-root", "content-index",
 		"locale-root", "assets-root",
 		"style-root", "style-index"],
