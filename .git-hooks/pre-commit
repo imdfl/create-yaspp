@@ -7,11 +7,15 @@
 #
 # To enable this hook, rename this file to "pre-commit".
 
-echo "Custom hook: Compiling before commit"
-npx tsc > precommit.log 2>&1
-TSC_OUT=`cat  precommit.log`
-rm precommit.log
-if [  "$?" == "0" ]; then
+echo "Precommit: Compiling before commit"
+LOGFILE=precommit.log
+npx tsc > $LOGFILE 2>&1
+RESULT="$?"
+TSC_OUT=`cat $LOGFILE`
+if [ -f $LOGFILE  ]; then
+	rm $LOGFILE
+fi
+if [  "$RESULT" == "0" ]; then
 	exit 0
 fi
 echo "Compilation failed"
