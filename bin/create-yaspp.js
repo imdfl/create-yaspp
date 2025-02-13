@@ -200,7 +200,7 @@ async function getConfiguration(args, autoReply) {
         errors.push(`You specified branch ${args.branch} without a site repository`);
     }
     console.log(t("prompt_print"));
-    console.log(stringify1(options));
+    console.log(stringify2(options));
     if (errors.length) {
         console.log(t("err_config"));
         console.log(errors.join('\n'));
