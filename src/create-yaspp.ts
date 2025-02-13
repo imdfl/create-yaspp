@@ -317,15 +317,16 @@ async function finalizeProject(tools: Record<string, string>): Promise<string> {
 			argv: ["run", script].concat(argv)
 		}
 	}
+	const onData = true, onError = true;
 	const yarnRes = await utils.captureProcessOutput({
-		cwd: fsPath.resolve(PROJECT_ROOT, "yaspp"),
+		cwd: fsPath.resolve(PROJECT_ROOT, "yaspp"), onData, onError,
 		...toCommandLine("install", [])
 	});
 	if (yarnRes.status) {
 		return `Failed to run yarn/npm`;
 	}
 	const initRes = await utils.captureProcessOutput({
-		exe: "npx",
+		exe: "npx", onData, onError,
 		argv: ["ts-node", "yaspp/scripts/build/init-yaspp", "--project", " ."]
 	})
 	if (initRes.status) {
@@ -373,7 +374,7 @@ async function main(args: ICYSPArgv): Promise<string> {
 	};
 	if (version) {
 		const ver = await getVersion();
-		console.log(`${t("version_msg")} ${ver}`);
+		console.log(`${t("version_msg")} ${ver.result}`);
 		exit();
 	}
 	if (dry) {
@@ -400,7 +401,7 @@ async function main(args: ICYSPArgv): Promise<string> {
 	}
 	options = validResult.result!;
 	const appErr = await createApp(options, dry);
-	if (!appErr) {
+	if (appErr) {
 		return appErr;
 	}
 	const gErr = await generateFiles(options);
@@ -550,7 +551,7 @@ class CYSUtils {
 			(s: string) => console.warn(`>${s}`) : onError!
 
 		const dataCB = (onData === true) ?
-			(s: string) => console.warn(`>${s}`) : onData
+			(s: string) => console.log(`>${s}`) : onData
 
 		return new Promise((resolve) => {
 			try {
@@ -661,7 +662,7 @@ class CYSUtils {
 			return !mustExist;
 		}
 		try {
-			const success = await rimraf(removeRoot ? path : `${path}/*`, {
+			const success = await rimraf.rimraf(removeRoot ? path : `${path}/*`, {
 				glob: !removeRoot
 			});
 			return success;
