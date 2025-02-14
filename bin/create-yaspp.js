@@ -16,6 +16,7 @@ const CSY_ROOT = path_1.default.resolve(__dirname, "..");
 const PROJECT_ROOT = process.cwd();
 const YASPP_REPO_URL = "git@github.com:imdfl/yaspp.git";
 const SAVED_CONFIG = "yaspp.site.json";
+const YASPP_CONFIG = "yaspp.config.json";
 function errorResult(err) {
     return {
         error: err || "error"
@@ -69,7 +70,7 @@ async function copyContent(path, dry) {
     }
 }
 async function generateYaspp(options, dry) {
-    const yPath = path_1.default.resolve(PROJECT_ROOT, YA);
+    const yPath = path_1.default.resolve(PROJECT_ROOT, YASPP_CONFIG);
     try {
         const y = {
             content: {
@@ -91,7 +92,7 @@ async function generateYaspp(options, dry) {
             } : undefined
         };
         if (dry) {
-            console.log(`${t("generating")} ${YA}:\n`, y);
+            console.log(`${t("generating")} ${YASPP_CONFIG}:\n`, y);
         }
         else {
             await fs_1.promises.writeFile(yPath, stringify(y));
@@ -99,7 +100,7 @@ async function generateYaspp(options, dry) {
         return successResult(yPath);
     }
     catch (err) {
-        return errorResult(`Error generating yaspp.json: ${err}`);
+        return errorResult(`Error generating ${YASPP_CONFIG}: ${err}`);
     }
 }
 /**
@@ -244,6 +245,7 @@ async function loadTools() {
     for await (const tool of tools) {
         const res = await utils.captureProcessOutput({
             exe: tool,
+            quiet: true,
             argv: ["--version"]
         });
         if (res.status === 0) {
@@ -260,7 +262,7 @@ async function cloneYaspp(dry) {
         `Clone error: ${yRes.error}` : "";
 }
 /**
- * Clones/Copies the content and generates yaspp.json
+ * Clones/Copies the content and generates yaspp.config.json
  * @param options
  * @param dry
  * @returns
@@ -289,7 +291,7 @@ async function copySiteContent(options, dry) {
     const finalOptions = adaptOptionsToPath(options, contentPath);
     return successResult(finalOptions);
 }
-async function finalizeProject(tools) {
+async function finalizeProject(tools, dryrun) {
     if (!tools.yarn && !tools.npm) {
         return "neither yarn nor npm available";
     }
@@ -304,14 +306,14 @@ async function finalizeProject(tools) {
     }
     const onData = true, onError = true;
     const yarnRes = await utils.captureProcessOutput({
-        cwd: path_1.default.resolve(PROJECT_ROOT, "yaspp"), onData, onError,
+        cwd: path_1.default.resolve(PROJECT_ROOT, "yaspp"), onData, onError, dryrun,
         ...toCommandLine("install", [])
     });
     if (yarnRes.status) {
         return `Failed to run yarn/npm`;
     }
     const initRes = await utils.captureProcessOutput({
-        exe: "npx", onData, onError,
+        exe: "npx", onData, onError, dryrun,
         argv: ["ts-node", "yaspp/scripts/build/init-yaspp", "--project", " ."]
     });
     if (initRes.status) {
@@ -319,9 +321,12 @@ async function finalizeProject(tools) {
     }
     return "";
 }
-async function generateFiles(options) {
+async function generateFiles(options, dry) {
     try {
-        await fs_1.promises.writeFile(path_1.default.resolve(PROJECT_ROOT, SAVED_CONFIG), stringify(options));
+        console.log(`Generating ${SAVED_CONFIG}`);
+        if (!dry) {
+            await fs_1.promises.writeFile(path_1.default.resolve(PROJECT_ROOT, SAVED_CONFIG), stringify(options));
+        }
     }
     catch (err) {
         console.error(`Error saving config to ${SAVED_CONFIG}: ${err}`);
@@ -337,19 +342,21 @@ async function generateFiles(options) {
             if (!tmplData) {
                 console.error(`Can't find ${path} template`);
             }
-            else if (!await utils.writeFile(filePath, tmplData)) {
-                console.error(`Failed to save ${path}`);
+            else {
+                console.log(`Generating ${path}`);
+                if (!dry) {
+                    if (!await utils.writeFile(filePath, tmplData)) {
+                        console.error(`Failed to save ${path}`);
+                    }
+                }
             }
         }
     }
     return "";
 }
 async function main(args) {
-    const { dry, version, help, autoReply, refresh, config, ...rest } = args;
+    const { dryrun: dry, version, help, autoReply, refresh, config, content, ...rest } = args;
     // console.log("create yaspp", args);
-    if (!await utils.loadStrings()) {
-        return "Failed to load strings file";
-    }
     if (help) {
         console.log(t("help"));
         exit();
@@ -368,8 +375,10 @@ async function main(args) {
         return t("err_tools");
     }
     let options = null;
+    const noContent = content === false;
     if (config || autoReply || refresh) {
         const configPath = path_1.default.resolve(PROJECT_ROOT, config || SAVED_CONFIG);
+        console.log(`Loading configuration from ${config || SAVED_CONFIG}`);
         options = await utils.readJSON(configPath);
         if (!options) {
             return `${t("err_config_file")} ${config} (${configPath})`;
@@ -383,14 +392,14 @@ async function main(args) {
         return validResult.error;
     }
     options = validResult.result;
-    const siteRes = await copySiteContent(options, dry);
+    const siteRes = await copySiteContent(options, dry || noContent);
     if (siteRes.error) {
         return siteRes.error;
     }
     if (refresh) {
         return "";
     }
-    const yspErr = await cloneYaspp(dry);
+    const yspErr = await cloneYaspp(dry || noContent);
     if (yspErr) {
         return yspErr;
     }
@@ -398,11 +407,11 @@ async function main(args) {
     if (genRes.error) {
         return genRes.error;
     }
-    const gErr = await generateFiles(options);
+    const gErr = await generateFiles(options, dry);
     if (gErr) {
         return gErr;
     }
-    const fErr = await finalizeProject(tools);
+    const fErr = await finalizeProject(tools, dry);
     if (fErr) {
         console.error(t("err_partial_setup"));
     }
@@ -527,16 +536,25 @@ class CYSUtils {
             return `copy failed (${srcPath} to ${targetPath}:\n${err}`;
         }
     }
-    async captureProcessOutput({ cwd, exe, argv, env, onData, onError }) {
+    async captureProcessOutput({ cwd, exe, argv, env, onData, onError, dryrun, quiet }) {
         const errCB = (onError === true) ?
-            (s) => console.warn(`>${s}`) : onError;
+            (s) => !quiet && console.warn(`>${s}`) : onError;
         const dataCB = (onData === true) ?
-            (s) => console.log(`>${s}`) : onData;
+            (s) => !quiet && console.log(`>${s}`) : onData;
+        if (!quiet) {
+            console.log(`${t("running")} ${exe} ${argv.join(' ')}`);
+        }
+        if (dryrun) {
+            return {
+                status: 0,
+                error: [],
+                output: []
+            };
+        }
         return new Promise((resolve) => {
             try {
                 const output = [];
                 const errors = [];
-                console.log(`${t("running")} ${exe} ${argv.join(' ')}`);
                 const proc = (0, child_process_1.spawn)(exe, argv, {
                     shell: true,
                     cwd: cwd || process.cwd(),
@@ -747,7 +765,8 @@ const args = (0, minimist_1.default)(process.argv.slice(2), {
     alias: {
         R: "repository",
         P: "path",
-        D: "dry",
+        D: "dryrun",
+        V: "version",
         "autoReply": "auto",
         defaultLocale: "default-locale",
         contentRoot: "content-root",
@@ -757,11 +776,10 @@ const args = (0, minimist_1.default)(process.argv.slice(2), {
         styleRoot: "style-root",
         styleIndex: "style-index",
     },
-    "boolean": ["version", "dry", "help", "refresh", "auto"],
+    "boolean": ["content", "version", "dryrun", "help", "refresh", "auto"],
     "default": { dry: false, "default-locale": "en" },
     "string": ["config", "repository", "path", "branch", "langs",
-        "content-root", "content-index",
-        "locale-root", "assets-root",
+        "content-root", "content-index", "locale-root", "assets-root",
         "style-root", "style-index"],
     "unknown": (s) => {
         const isArg = s.charAt(0) === "-";
@@ -771,13 +789,19 @@ const args = (0, minimist_1.default)(process.argv.slice(2), {
         return false;
     }
 });
-if (unknownArgs.length) {
-    console.error(t("help"));
-    exit(`${t("err_args")} ${unknownArgs}\n`);
-}
-main(args)
-    .then(err => {
-    exit(err);
+utils.loadStrings()
+    .then(success => {
+    if (!success) {
+        return "Failed to load strings file";
+    }
+    if (unknownArgs.length) {
+        console.error(t("help"));
+        exit(`${t("err_args")} ${unknownArgs}\n`);
+    }
+    main(args)
+        .then(err => {
+        exit(err);
+    });
 })
     .catch(err => {
     exit(String(err));
