@@ -834,7 +834,7 @@ const args = parseArgs(process.argv.slice(2), {
 
 	},
 	"boolean": ["content", "version", "dryrun", "help", "refresh", "auto"],
-	"default": { dry: false, "default-locale": "en" },
+	"default": { dry: false, "default-locale": "en", "content": true },
 	"string": ["config", "repository", "path", "branch", "langs",
 		"content-root", "content-index", "locale-root", "assets-root",
 		"style-root", "style-index"],
