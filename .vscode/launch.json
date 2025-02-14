@@ -40,6 +40,15 @@
 				"NODE_OPTIONS": "--inspect"
 			}
 		},
+		{
+			"name": "Dry refresh",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "npx ts-node src/create-yaspp --auto --no-content",
+			"env": {
+				"NODE_OPTIONS": "--inspect"
+			}
+		}
 
     ]
 }

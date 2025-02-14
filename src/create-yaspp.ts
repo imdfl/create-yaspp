@@ -15,7 +15,7 @@ const CSY_ROOT = fsPath.resolve(__dirname, "..");
 const PROJECT_ROOT = process.cwd();
 const YASPP_REPO_URL = "git@github.com:imdfl/yaspp.git";
 const SAVED_CONFIG = "yaspp.site.json";
-
+const YASPP_CONFIG = "yaspp.config.json";
 function errorResult<T>(err: string): IResponse<T> {
 	return {
 		error: err || "error"
@@ -77,7 +77,7 @@ async function copyContent(path: string, dry?: boolean): Promise<IResponse<strin
 
 
 async function generateYaspp(options: ICYSPOptions, dry?: boolean): Promise<IResponse<string>> {
-	const yPath = fsPath.resolve(PROJECT_ROOT, "yaspp.json");
+	const yPath = fsPath.resolve(PROJECT_ROOT, YASPP_CONFIG);
 	try {
 		const y: IYasppConfig = {
 			content: {
@@ -101,7 +101,7 @@ async function generateYaspp(options: ICYSPOptions, dry?: boolean): Promise<IRes
 			} : undefined
 		};
 		if (dry) {
-			console.log(`${t("generating")} yassp.json:\n`, y)
+			console.log(`${t("generating")} ${YASPP_CONFIG}:\n`, y)
 		}
 		else {
 			await fs.writeFile(yPath, stringify(y));
@@ -109,7 +109,7 @@ async function generateYaspp(options: ICYSPOptions, dry?: boolean): Promise<IRes
 		return successResult(yPath);
 	}
 	catch (err) {
-		return errorResult(`Error generating yaspp.json: ${err}`);
+		return errorResult(`Error generating ${YASPP_CONFIG}: ${err}`);
 	}
 }
 
@@ -259,6 +259,7 @@ async function loadTools(): Promise<Record<string, string>> {
 	for await (const tool of tools) {
 		const res = await utils.captureProcessOutput({
 			exe: tool,
+			quiet: true,
 			argv: ["--version"]
 		});
 		if (res.status === 0) {
@@ -278,7 +279,7 @@ async function cloneYaspp(dry?: boolean): Promise<string> {
 }
 
 /**
- * Clones/Copies the content and generates yaspp.json
+ * Clones/Copies the content and generates yaspp.config.json
  * @param options 
  * @param dry 
  * @returns 
@@ -309,7 +310,7 @@ async function copySiteContent(options: ICYSPOptions, dry?: boolean): Promise<IR
 
 }
 
-async function finalizeProject(tools: Record<string, string>): Promise<string> {
+async function finalizeProject(tools: Record<string, string>, dryrun?: boolean): Promise<string> {
 	if (!tools.yarn && !tools.npm) {
 		return "neither yarn nor npm available";
 	}
@@ -323,15 +324,16 @@ async function finalizeProject(tools: Record<string, string>): Promise<string> {
 		}
 	}
 	const onData = true, onError = true;
+
 	const yarnRes = await utils.captureProcessOutput({
-		cwd: fsPath.resolve(PROJECT_ROOT, "yaspp"), onData, onError,
+		cwd: fsPath.resolve(PROJECT_ROOT, "yaspp"), onData, onError, dryrun,
 		...toCommandLine("install", [])
 	});
 	if (yarnRes.status) {
 		return `Failed to run yarn/npm`;
 	}
 	const initRes = await utils.captureProcessOutput({
-		exe: "npx", onData, onError,
+		exe: "npx", onData, onError, dryrun,
 		argv: ["ts-node", "yaspp/scripts/build/init-yaspp", "--project", " ."]
 	})
 	if (initRes.status) {
@@ -340,9 +342,12 @@ async function finalizeProject(tools: Record<string, string>): Promise<string> {
 	return "";
 }
 
-async function generateFiles(options: ICYSPOptions): Promise<string> {
+async function generateFiles(options: ICYSPOptions, dry?: boolean): Promise<string> {
 	try {
-		await fs.writeFile(fsPath.resolve(PROJECT_ROOT, SAVED_CONFIG), stringify(options));
+		console.log(`Generating ${SAVED_CONFIG}`);
+		if (!dry) {
+			await fs.writeFile(fsPath.resolve(PROJECT_ROOT, SAVED_CONFIG), stringify(options));
+		}
 	}
 	catch (err) {
 		console.error(`Error saving config to ${SAVED_CONFIG}: ${err}`);
@@ -358,8 +363,13 @@ async function generateFiles(options: ICYSPOptions): Promise<string> {
 			if (!tmplData) {
 				console.error(`Can't find ${path} template`);
 			}
-			else if (!await utils.writeFile(filePath, tmplData)) {
-				console.error(`Failed to save ${path}`)
+			else {
+				console.log(`Generating ${path}`);
+				if (!dry) {
+					if (!await utils.writeFile(filePath, tmplData)) {
+						console.error(`Failed to save ${path}`)
+					}
+				}
 			}
 		}
 	}
@@ -368,11 +378,8 @@ async function generateFiles(options: ICYSPOptions): Promise<string> {
 
 
 async function main(args: ICYSPArgv): Promise<string> {
-	const { dry, version, help, autoReply, refresh, config, ...rest } = args;
+	const { dryrun: dry, version, help, autoReply, refresh, config, content, ...rest } = args;
 	// console.log("create yaspp", args);
-	if (!await utils.loadStrings()) {
-		return "Failed to load strings file";
-	}
 	if (help) {
 		console.log(t("help"));
 		exit();
@@ -390,8 +397,10 @@ async function main(args: ICYSPArgv): Promise<string> {
 		return t("err_tools");
 	}
 	let options: ICYSPOptions | null = null;
+	const noContent = content === false;
 	if (config || autoReply || refresh) {
 		const configPath = fsPath.resolve(PROJECT_ROOT, config || SAVED_CONFIG);
+		console.log(`Loading configuration from ${config || SAVED_CONFIG}`)
 		options = await utils.readJSON<ICYSPOptions>(configPath);
 		if (!options) {
 			return `${t("err_config_file")} ${config} (${configPath})`;
@@ -405,14 +414,14 @@ async function main(args: ICYSPArgv): Promise<string> {
 		return validResult.error;
 	}
 	options = validResult.result!;
-	const siteRes = await copySiteContent(options, dry);
+	const siteRes = await copySiteContent(options, dry || noContent);
 	if (siteRes.error) {
 		return siteRes.error;
 	}
 	if (refresh) {
 		return "";
 	}
-	const yspErr = await cloneYaspp(dry);
+	const yspErr = await cloneYaspp(dry || noContent);
 	if (yspErr) {
 		return yspErr;
 	}
@@ -422,11 +431,11 @@ async function main(args: ICYSPArgv): Promise<string> {
 		return genRes.error;
 	}
 
-	const gErr = await generateFiles(options);
+	const gErr = await generateFiles(options, dry);
 	if (gErr) {
 		return gErr;
 	}
-	const fErr = await finalizeProject(tools);
+	const fErr = await finalizeProject(tools, dry);
 	if (fErr) {
 		console.error(t("err_partial_setup"));
 	}
@@ -564,18 +573,27 @@ class CYSUtils {
 
 	}
 
-	public async captureProcessOutput({ cwd, exe, argv, env, onData, onError }: IProcessOptions): Promise<IProcessOutput> {
+	public async captureProcessOutput({ cwd, exe, argv, env, onData, onError, dryrun, quiet }: IProcessOptions): Promise<IProcessOutput> {
 		const errCB = (onError === true) ?
-			(s: string) => console.warn(`>${s}`) : onError!
+			(s: string) => !quiet && console.warn(`>${s}`) : onError!
 
 		const dataCB = (onData === true) ?
-			(s: string) => console.log(`>${s}`) : onData
+			(s: string) => !quiet && console.log(`>${s}`) : onData
 
+		if (!quiet) {
+			console.log(`${t("running")} ${exe} ${argv.join(' ')}`);
+		}
+		if (dryrun) {
+			return {
+				status: 0,
+				error: [],
+				output: []
+			}
+		}
 		return new Promise((resolve) => {
 			try {
 				const output: string[] = [];
 				const errors: string[] = [];
-				console.log(`${t("running")} ${exe} ${argv.join(' ')}`);
 				const proc = spawn(exe, argv, {
 					shell: true,
 					cwd: cwd || process.cwd(),
@@ -803,7 +821,8 @@ const args = parseArgs(process.argv.slice(2), {
 	alias: {
 		R: "repository",
 		P: "path",
-		D: "dry",
+		D: "dryrun",
+		V: "version",
 		"autoReply": "auto",
 		defaultLocale: "default-locale",
 		contentRoot: "content-root",
@@ -814,11 +833,10 @@ const args = parseArgs(process.argv.slice(2), {
 		styleIndex: "style-index",
 
 	},
-	"boolean": ["version", "dry", "help", "refresh", "auto"],
+	"boolean": ["content", "version", "dryrun", "help", "refresh", "auto"],
 	"default": { dry: false, "default-locale": "en" },
 	"string": ["config", "repository", "path", "branch", "langs",
-		"content-root", "content-index",
-		"locale-root", "assets-root",
+		"content-root", "content-index", "locale-root", "assets-root",
 		"style-root", "style-index"],
 	"unknown": (s: string) => {
 		const isArg = s.charAt(0) === "-";
@@ -829,14 +847,20 @@ const args = parseArgs(process.argv.slice(2), {
 	}
 }) as ICYSPArgv;
 
-if (unknownArgs.length) {
-	console.error(t("help"));
-	exit(`${t("err_args")} ${unknownArgs}\n`);
-}
 
-main(args)
-	.then(err => {
-		exit(err);
+utils.loadStrings()
+	.then(success => {
+		if (!success) {
+			return "Failed to load strings file";
+		}
+		if (unknownArgs.length) {
+			console.error(t("help"));
+			exit(`${t("err_args")} ${unknownArgs}\n`);
+		}
+		main(args)
+			.then(err => {
+				exit(err);
+			})
 	})
 	.catch(err => {
 		exit(String(err));

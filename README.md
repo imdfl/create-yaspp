@@ -8,12 +8,16 @@ To use this package, you do not need to install it. Simply `cd` to the folder in
 
 ## Command line options
 
-The generator prompts you for all the configuration values, but you can provide them in the command line.
-
-- `--dry`: Dry run. Print all the steps and the resulting configuration.
+### Runtime Options
+- `--dryrun`: Dry run. Print all the steps and the resulting configuration.
 - `--auto`: If a configuration file was provided with `--config` or if the auto-saved file `yaspp.site.json` is found, then `create-yaspp` will use the values in it to run the setup, without prompting the user for input, copying or cloning the site if a valid source is specified in the configuration.
 - `--refesh`: If a valid configuration was provided with `--config` or if the auto-saved file `yaspp.site.json` is found, try
 to refresh the site's content (clone or copy again) based on the values in the configuration.
+- `--no-content`: Skip copying, cloning or generating files.
+
+### Project Configuration Options
+The generator prompts you for all the configuration values, but you can provide them in the command line.
+
 - `--config <path/to/yourconfig.json>`: Use the values stored in the provided configuration file
 - `--repository <git url>`: The content repository to clone. If provided, the repository will be cloned into the `site` folder.
 - `--branch <branch name>`: If provided, only this branch will be cloned from the repository.
@@ -34,6 +38,6 @@ will be copied to the `site` folder.
 After the configuration is validated, `create-yaspp` performs the following actions:
 1. If a repository or a file system path were provided, clone/copy that data source into the `site` folder
 2. Clone the [`Yaspp`](https://github.com/imdfl/yaspp) project into the `yaspp` folder
-3. Save the configuration in `yaspp.json`
+3. Save the configuration in `yaspp.config.json`
 4. Copy default `.gitignore` and `package.json` to the project root, unless these files already exist.
 5. Setup the `yaspp` platform by running the required scripts there.

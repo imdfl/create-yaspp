@@ -33,6 +33,7 @@ else
 fi
 
 if [  "$RESULT" == "0" ]; then
+	echo "Compiled successfully"
 	exit 0
 fi
 echo "Compilation failed"

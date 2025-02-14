@@ -26,12 +26,13 @@ export interface ICloneOptions {
 }
 
 export interface ICYSPArgv extends Partial<ICYSPOptions> {
-	readonly dry?: boolean;
+	readonly dryrun?: boolean;
 	readonly help?: boolean;
 	readonly version?: boolean;
 	readonly config?: string;
 	readonly autoReply?: boolean;
 	readonly refresh?: boolean;
+	readonly content?: boolean;
 }
 
 export interface IResponse<T> {
@@ -49,9 +50,6 @@ export interface IRemoveFolderOptions {
 	 */
 	readonly mustExist?: boolean;
 }
-
-
-export type IProcessOptions = Readonly<IMutableProcessOptions>;
 
 
 export interface IProcessOutput {
@@ -86,7 +84,18 @@ export interface IMutableProcessOptions {
      * If true, log the error, if a function call it on every stderr data
      */
 	onError?: ((data: string) => void) | boolean;
+
+	/**
+	 * If true, only log the command to console
+	 */
+	dryrun?: boolean;
+	/**
+	 * Suppress output
+	 */
+	quiet?: boolean;
 }
+
+export type IProcessOptions = Readonly<IMutableProcessOptions>;
 
 export interface IProjectLocaleConfig {
 	readonly langs: ReadonlyArray<string>;

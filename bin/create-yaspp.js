@@ -69,7 +69,7 @@ async function copyContent(path, dry) {
     }
 }
 async function generateYaspp(options, dry) {
-    const yPath = path_1.default.resolve(PROJECT_ROOT, "yaspp.json");
+    const yPath = path_1.default.resolve(PROJECT_ROOT, YA);
     try {
         const y = {
             content: {
@@ -91,7 +91,7 @@ async function generateYaspp(options, dry) {
             } : undefined
         };
         if (dry) {
-            console.log(`${t("generating")} yassp.json:\n`, y);
+            console.log(`${t("generating")} ${YA}:\n`, y);
         }
         else {
             await fs_1.promises.writeFile(yPath, stringify(y));
@@ -200,7 +200,7 @@ async function getConfiguration(args, autoReply) {
         errors.push(`You specified branch ${args.branch} without a site repository`);
     }
     console.log(t("prompt_print"));
-    console.log(stringify2(options));
+    console.log(stringify(options));
     if (errors.length) {
         console.log(t("err_config"));
         console.log(errors.join('\n'));

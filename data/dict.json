@@ -1,5 +1,5 @@
 {
-    "help": "Usage: create-yassp\n  --dry/-D: dry run\n  --help: Print this help message\n  --repository/-R <url>: the full URL of the content repository to clone\n  --path/-P <path>: The file system path of the content to copy\nSee the README for the full list",
+    "help": "Usage: create-yaspp\n  --dry/-D: dry run\n  --help: Print this help message\n  --repository/-R <url>: the full URL of the content repository to clone\n  --path/-P <path>: The file system path of the content to copy\nSee the README for the full list",
     "instructions": "==Project Configuration===\n  - Default values are surrounded in [brackets]\n  - Mandatory options are marked with *\n  - If there's a default value, Enter one or more spaces to return an empty value\n",
     "required_tools": "create-yaspp requires git and yarn",
     "dry_run": "===yaspp dry run===",
