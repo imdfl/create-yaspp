@@ -431,13 +431,13 @@ async function main(args: ICYSPArgv): Promise<string> {
 		return genRes.error;
 	}
 
+	const fErr = await finalizeProject(tools, dry);
+	if (fErr) {
+		console.error(`${t("err_partial_setup")}:\n${fErr}`);
+	}
 	const gErr = await generateFiles(options, dry);
 	if (gErr) {
 		return gErr;
-	}
-	const fErr = await finalizeProject(tools, dry);
-	if (fErr) {
-		console.error(t("err_partial_setup"));
 	}
 	return "";
 }

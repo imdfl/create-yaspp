@@ -35,7 +35,7 @@
   "files": [
     "LICENSE",
     "bin/",
-     "data/*"
+    "data/*"
   ],
   "scripts": {
     "clean": "rm -rf site yaspp",
