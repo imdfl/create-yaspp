@@ -777,7 +777,7 @@ const args = (0, minimist_1.default)(process.argv.slice(2), {
         styleIndex: "style-index",
     },
     "boolean": ["content", "version", "dryrun", "help", "refresh", "auto"],
-    "default": { dry: false, "default-locale": "en" },
+    "default": { dry: false, "default-locale": "en", "content": true },
     "string": ["config", "repository", "path", "branch", "langs",
         "content-root", "content-index", "locale-root", "assets-root",
         "style-root", "style-index"],
