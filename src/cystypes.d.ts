@@ -6,8 +6,10 @@ export type Mutable<T> = {
 
 export interface ICYSPOptions {
 	readonly path: string;
+	readonly target: string;
 	readonly repository: string;
     readonly branch: string;
+	readonly clean: boolean;
     readonly contentRoot: string;
     readonly contentIndex: string;
     readonly localeRoot: string;
@@ -22,17 +24,22 @@ export interface ICloneOptions {
 	readonly url: string;
 	readonly folderName?: string;
 	readonly branch?: string;
-	readonly dry?: boolean
+	readonly dry?: boolean;
+	/**
+	 * Full path
+	 */
+	readonly parentFolder: string;
 }
 
 export interface ICYSPArgv extends Partial<ICYSPOptions> {
-	readonly dryrun?: boolean;
-	readonly help?: boolean;
-	readonly version?: boolean;
-	readonly config?: string;
-	readonly autoReply?: boolean;
-	readonly refresh?: boolean;
-	readonly content?: boolean;
+	readonly dryrun: boolean;
+	readonly help: boolean;
+	readonly version: boolean;
+	readonly config: string;
+	readonly autoReply: boolean;
+	readonly refresh: boolean;
+	readonly content: boolean;
+	readonly clean: boolean;
 }
 
 export interface IResponse<T> {

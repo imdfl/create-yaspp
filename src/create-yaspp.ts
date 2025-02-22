@@ -54,14 +54,14 @@ function exit(err?: string): void {
 }
 
 /**
- * Hard coded destination folder  "site" under cwd
- * @param path 
+ * Hard coded destination folder "site" under cwd
+ * @param path the path to 
  * @param dry 
  * @returns 
  */
-async function copyContent(path: string, dry?: boolean): Promise<IResponse<string>> {
+async function copyContent(path: string, target: string, dry?: boolean): Promise<IResponse<string>> {
 	const srcPath = fsPath.resolve(PROJECT_ROOT, path);
-	const sitePath = fsPath.resolve(PROJECT_ROOT, "site");
+	const sitePath = fsPath.resolve(target, "site");
 	try {
 		console.log(`${t("copying")} ${path} (${srcPath})`);
 		if (dry) {
@@ -75,9 +75,14 @@ async function copyContent(path: string, dry?: boolean): Promise<IResponse<strin
 	}
 }
 
-
+/**
+ * Generates yaspp.config.json in the root folder of the project
+ * @param options 
+ * @param dry 
+ * @returns 
+ */
 async function generateYaspp(options: ICYSPOptions, dry?: boolean): Promise<IResponse<string>> {
-	const yPath = fsPath.resolve(PROJECT_ROOT, YASPP_CONFIG);
+	const yPath = fsPath.resolve(options.target, YASPP_CONFIG);
 	try {
 		const y: IYasppConfig = {
 			content: {
@@ -119,10 +124,13 @@ async function generateYaspp(options: ICYSPOptions, dry?: boolean): Promise<IRes
  * @param autoReply if true, don't prompt the user for input, use the provided values
  * @returns either error or a full configuration
  */
-async function getConfiguration(args: ICYSPArgv, autoReply?: boolean): Promise<IResponse<ICYSPOptions>> {
+async function getConfiguration(args: Partial<ICYSPArgv>, autoReply?: boolean): Promise<IResponse<ICYSPOptions>> {
 	const options: Partial<Mutable<ICYSPOptions>> = {
-		repository: ""
+		repository: "",
+		target: fsPath.resolve(PROJECT_ROOT, args.target || "."),
+		clean: args.clean === true
 	};
+
 	autoReply = autoReply === true;
 	const errors: string[] = [];
 	const mandatory = true;
@@ -232,7 +240,7 @@ function adaptOptionsToPath(options: ICYSPOptions, path: string): ICYSPOptions {
 	if (!path) {
 		return options;
 	}
-	const root = utils.diffPaths(PROJECT_ROOT, path);
+	const root = utils.diffPaths(options.target, path);
 	if (!root) {
 		return options;
 	}
@@ -270,9 +278,9 @@ async function loadTools(): Promise<Record<string, string>> {
 
 }
 
-async function cloneYaspp(dry?: boolean): Promise<string> {
+async function cloneYaspp(target: string, dry?: boolean): Promise<string> {
 	const yRes = await utils.cloneRepository({
-		url: YASPP_REPO_URL, branch: "master", dry
+		url: YASPP_REPO_URL, branch: "master", dry, parentFolder: target
 	});
 	return yRes.error ?
 		`Clone error: ${yRes.error}` : ""
@@ -287,7 +295,7 @@ async function cloneYaspp(dry?: boolean): Promise<string> {
 async function copySiteContent(options: ICYSPOptions, dry?: boolean): Promise<IResponse<ICYSPOptions>> {
 	let contentPath = "";
 	if (options.path) {
-		const copyRes = await copyContent(options.path, dry);
+		const copyRes = await copyContent(options.path, options.target, dry);
 		if (copyRes.error) {
 			return errorResult(copyRes.error);
 		}
@@ -296,6 +304,7 @@ async function copySiteContent(options: ICYSPOptions, dry?: boolean): Promise<IR
 	else if (options.repository) {
 		const cloneRes = await utils.cloneRepository({
 			url: options.repository,
+			parentFolder: options.target,
 			branch: options.branch,
 			dry,
 			folderName: "site"
@@ -310,7 +319,7 @@ async function copySiteContent(options: ICYSPOptions, dry?: boolean): Promise<IR
 
 }
 
-async function finalizeProject(tools: Record<string, string>, dryrun?: boolean): Promise<string> {
+async function finalizeProject(target: string, tools: Record<string, string>, dryrun?: boolean): Promise<string> {
 	if (!tools.yarn && !tools.npm) {
 		return "neither yarn nor npm available";
 	}
@@ -326,7 +335,7 @@ async function finalizeProject(tools: Record<string, string>, dryrun?: boolean):
 	const onData = true, onError = true;
 
 	const yarnRes = await utils.captureProcessOutput({
-		cwd: fsPath.resolve(PROJECT_ROOT, "yaspp"), onData, onError, dryrun,
+		cwd: fsPath.resolve(target, "yaspp"), onData, onError, dryrun,
 		...toCommandLine("install", [])
 	});
 	if (yarnRes.status) {
@@ -346,7 +355,7 @@ async function generateFiles(options: ICYSPOptions, dry?: boolean): Promise<stri
 	try {
 		console.log(`Generating ${SAVED_CONFIG}`);
 		if (!dry) {
-			await fs.writeFile(fsPath.resolve(PROJECT_ROOT, SAVED_CONFIG), stringify(options));
+			await fs.writeFile(fsPath.resolve(options.target, SAVED_CONFIG), stringify(options));
 		}
 	}
 	catch (err) {
@@ -376,8 +385,41 @@ async function generateFiles(options: ICYSPOptions, dry?: boolean): Promise<stri
 	return "";
 }
 
+async function verifyTarget({ clean = false, dryrun = false, autoReply }: Partial<ICYSPArgv>, { target,  }: ICYSPOptions): Promise<string> {
+	if (!dryrun) {
+		if (await utils.mkdir(target)) {
+			return `Failed to find or create target folder ${target}`;
+		}
+	}
+	const emptyRes = await utils.isEmpty(target, false);
+	if (emptyRes.error) {
+		return emptyRes.error;
+	}
+	const notEmpty = `Target folder ${target} not empty`;
+	if (emptyRes.result === false) {
+		if (dryrun) {
+			return clean ? "" : `Target folder ${target} not empty`;
+		}
+		if (clean) {
+			const rm = await utils.removeFolder({ path: target, removeRoot: false });
+			return rm ? "" : notEmpty;
+		}
+		if (autoReply) {
+			return notEmpty;
+		}
+		const remove = await utils.confirm(`Target folder ${utils.trimPath(target)} is not empty. Delete content`, false);
+		if (!remove) {
+			return notEmpty;
+		}
+		const rm = await utils.removeFolder({ path: target, removeRoot: false });
+		return rm ? "" : notEmpty;
+}
 
-async function main(args: ICYSPArgv): Promise<string> {
+	return "";
+}
+
+
+async function main(args: Partial<ICYSPArgv>): Promise<string> {
 	const { dryrun: dry, version, help, autoReply, refresh, config, content, ...rest } = args;
 	// console.log("create yaspp", args);
 	if (help) {
@@ -414,6 +456,10 @@ async function main(args: ICYSPArgv): Promise<string> {
 		return validResult.error;
 	}
 	options = validResult.result!;
+	const emptyErr = await verifyTarget(args, options);
+	if (emptyErr) {
+		return emptyErr;
+	}
 	const siteRes = await copySiteContent(options, dry || noContent);
 	if (siteRes.error) {
 		return siteRes.error;
@@ -421,7 +467,7 @@ async function main(args: ICYSPArgv): Promise<string> {
 	if (refresh) {
 		return "";
 	}
-	const yspErr = await cloneYaspp(dry || noContent);
+	const yspErr = await cloneYaspp(options.target, dry || noContent);
 	if (yspErr) {
 		return yspErr;
 	}
@@ -431,7 +477,7 @@ async function main(args: ICYSPArgv): Promise<string> {
 		return genRes.error;
 	}
 
-	const fErr = await finalizeProject(tools, dry);
+	const fErr = await finalizeProject(options.target, tools, dry);
 	if (fErr) {
 		console.error(`${t("err_partial_setup")}:\n${fErr}`);
 	}
@@ -469,9 +515,9 @@ class CYSUtils {
 	 * Clone a git repo with optional branch name and target folder  name
 	 * @returns either error or the path of the repo clone on the fs
 	 */
-	public async cloneRepository({ url, dry, branch, folderName }: ICloneOptions): Promise<IResponse<string>> {
+	public async cloneRepository({ url, dry, branch, folderName, parentFolder }: ICloneOptions): Promise<IResponse<string>> {
 		const repoName = url.replace(/^.+\/([^\.]+)\.git\s*$/, "$1");
-		const sitePath = fsPath.resolve(PROJECT_ROOT, folderName || repoName);
+		const sitePath = fsPath.resolve(parentFolder, folderName || repoName);
 		console.log(`${t("cloning")} ${url}`);
 		if (dry) {
 			return successResult(sitePath);
@@ -484,10 +530,13 @@ class CYSUtils {
 				args.push(folderName);
 			}
 			const res = await this.captureProcessOutput({
+				cwd: parentFolder,
 				exe: "git",
 				argv: args
-			})
-			return successResult(sitePath);
+			});
+			return res.status ?
+				errorResult(res.error.join('\n'))
+				: successResult(sitePath);
 		}
 		catch (e) {
 			return errorResult(`Error cloning ${url}:\n${e}`);
@@ -689,8 +738,18 @@ class CYSUtils {
 	}
 
 	/**
+	 * Returns a path suitable for quick display, last 3 components
+	 * @param path 
+	 * @returns 
+	 */
+	public trimPath(path: string): string {
+		const parts = path.split(/[\/\\]+/);
+		return parts.slice(Math.max(0, parts.length - 3)).join('/');
+	}
+
+	/**
 	 * Swallows errors
-	 * @param param0 
+	 * @param options.mustExist If true, return an error if the folder doesn't exist, otherwise return success 
 	 * @returns 
 	 */
 	public async removeFolder({ path, removeRoot, mustExist = false }: IRemoveFolderOptions): Promise<boolean> {
@@ -731,6 +790,40 @@ class CYSUtils {
 	public async isFileOrFolder(fspath: string): Promise<boolean> {
 		const t = await this.getFileType(fspath);
 		return t === "folder" || t === "file";
+	}
+
+	public async isEmpty(folder: string, mustExist: boolean): Promise<IResponse<boolean>> {
+		if (!await this.isFolder(folder)) {
+			return mustExist ? errorResult(`Folder $`) : successResult(true);
+		}
+		try {
+			const files = await fs.readdir(folder, { withFileTypes: true});
+			for await (const d of files) {
+				if  (d.name === "." || d.name === "..") {
+					continue;
+				}
+
+				if (d.isDirectory()) {
+					const emptyRes = await this.isEmpty(fsPath.resolve(folder, d.name), mustExist);
+					if (emptyRes.error) {
+						return emptyRes;
+					}
+					if (emptyRes.result === false) {
+						return successResult(false);
+					}
+					{
+						return successResult(false);
+					}
+				}
+				else {
+					return successResult(false)
+				}
+			}
+		}
+		catch(e) {
+			return errorResult(`Failed to read folder: ${e}`);
+		}
+		return successResult(true);
 	}
 
 	/**
@@ -823,6 +916,7 @@ const args = parseArgs(process.argv.slice(2), {
 		P: "path",
 		D: "dryrun",
 		V: "version",
+		T: "target",
 		"autoReply": "auto",
 		defaultLocale: "default-locale",
 		contentRoot: "content-root",
@@ -833,9 +927,9 @@ const args = parseArgs(process.argv.slice(2), {
 		styleIndex: "style-index",
 
 	},
-	"boolean": ["content", "version", "dryrun", "help", "refresh", "auto"],
-	"default": { dry: false, "default-locale": "en", "content": true },
-	"string": ["config", "repository", "path", "branch", "langs",
+	"boolean": ["clean", "content", "version", "dryrun", "help", "refresh", "auto"],
+	"default": { clean: false, target: ".", dry: false, "default-locale": "en", "content": true },
+	"string": ["config", "target", "repository", "path", "branch", "langs",
 		"content-root", "content-index", "locale-root", "assets-root",
 		"style-root", "style-index"],
 	"unknown": (s: string) => {
@@ -845,7 +939,7 @@ const args = parseArgs(process.argv.slice(2), {
 		}
 		return false;
 	}
-}) as ICYSPArgv;
+}) as Partial<ICYSPArgv>;
 
 
 utils.loadStrings()
