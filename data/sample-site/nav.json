@@ -1,0 +1,168 @@
+{
+    "groups": {
+        "topbar": {
+            "items": [
+                "articles",
+                "contact"
+            ]
+        },
+        "sidebar": {
+            "items": [
+                "articles",
+                "about",
+                "contact"
+            ]
+        },
+        "footer": {
+            "items": [
+                "pages",
+                "links"
+            ]
+        }
+    },
+    "sections": {
+        "articles": {
+            "title": "nav:sections:articles:label",
+            "locale": {},
+            "items": [
+                "preface",
+                "mel-kaye-bio",
+                "mels-hack-the-missing-bits",
+                "resources"
+            ]
+        },
+        "contact": {
+            "title": "nav:sections:contact:label",
+            "locale": {},
+            "items": [
+                "contact",
+                "twitter",
+                "github"
+            ]
+        },
+        "about": {
+            "title": "nav:sections:about:label",
+            "locale": {},
+            "items": [
+                "about-mobile",
+                "blog"
+            ]
+        },
+        "pages": {
+            "title": "common:footer:sections:pages:label",
+            "locale": {},
+            "items": [
+                "about",
+                "blog",
+                "contribute"
+            ]
+        },
+        "links": {
+            "title": "common:footer:sections:links:label",
+            "locale": {},
+            "items": [
+                "contact",
+                "twitter",
+                "github"
+            ]
+        }
+    },
+    "items": {
+        "first": {
+            "type": "article",
+            "url": "/docs/doc1",
+            "icon": "article",
+            "title": "nav:items:articles:1:label",
+            "locale": {
+                "author": "authors:yaspp"
+            }
+        },
+        "second": {
+            "type": "article",
+            "url": "/docs/doc1",
+            "icon": "article",
+            "title": "nav:items:articles:1:label",
+            "locale": {
+                "author": "authors:yaspp"
+            }
+        },
+        "mels-hack-the-missing-bits": {
+            "type": "article",
+            "url": "/docs/the-story-of-mel/pages/mels-hack-the-missing-bits",
+            "icon": "article",
+            "title": "nav:items:articles:som:missingBits:label",
+            "locale": {
+                "author": "authors:dfl"
+            }
+        },
+        "resources": {
+            "type": "page",
+            "url": "/docs/the-story-of-mel/pages/resources",
+            "icon": "list",
+            "title": "nav:items:pages:resources:label",
+            "locale": {
+                "description": "nav:items:pages:resources:desc"
+            }
+        },
+        "about": {
+            "type": "page",
+            "url": "/about",
+            "title": "nav:items:pages:about:label",
+            "locale": {
+                "description": "nav:items:pages:about:desc"
+            }
+        },
+        "about-mobile": {
+            "type": "page",
+            "url": "/about",
+            "title": "nav:items:pages:about:label",
+            "locale": {
+                "description": "nav:items:pages:about:desc"
+            }
+        },
+        "blog": {
+            "type": "page",
+            "url": "/posts",
+            "title": "nav:items:pages:blog:label",
+            "locale": {
+                "description": "nav:items:pages:blog:desc"
+            }
+        },
+        "contribute": {
+            "type": "page",
+            "url": "/contribute",
+            "title": "nav:items:pages:contrib:label",
+            "locale": {
+                "description": "nav:items:pages:contrib:desc"
+            }
+        },
+        "contact": {
+            "type": "page",
+            "url": "/contact",
+            "icon": "pencil",
+            "title": "nav:items:pages:contact:label",
+            "locale": {
+                "description": "nav:items:pages:contact:desc"
+            }
+        },
+        "twitter": {
+            "type": "external",
+            "url": "https://twitter.com/aboutmelsloop",
+            "icon": "𝕏",
+            "title": "nav:items:links:twitter:label",
+            "locale": {
+                "description": "nav:items:links:twitter:desc"
+            }
+        },
+        "github": {
+            "type": "external",
+            "url": "https://github.com/tomerlichtash/mels-loop",
+            "icon": "github",
+            "target": "_blank",
+            "title": "nav:items:links:github:label",
+            "locale": {
+                "description": "nav:items:links:github:desc"
+            }
+        }
+    }
+}

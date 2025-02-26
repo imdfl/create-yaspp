@@ -2,7 +2,7 @@
 Package for creating a [`Yaspp`](https://github.com/imdfl/yaspp) web site
 
 To use this package, you do not need to install it. Simply `cd` to the folder in which you want to create your `yaspp` project
-(preferably an empty one) and run the command
+(preferably an empty one) and run the command. You can also specify a different project folder. Note that the script **will not proceed** if the project folder is not empty.
 
     $ npx create-yaspp [...arguments]
 
@@ -10,15 +10,16 @@ To use this package, you do not need to install it. Simply `cd` to the folder in
 
 ### Runtime Options
 - `--dryrun`: Dry run. Print all the steps and the resulting configuration.
+- `--config <path/to/yourconfig.json>`: Use the values stored in the provided configuration file
 - `--auto`: If a configuration file was provided with `--config` or if the auto-saved file `yaspp.site.json` is found, then `create-yaspp` will use the values in it to run the setup, without prompting the user for input, copying or cloning the site if a valid source is specified in the configuration.
 - `--refesh`: If a valid configuration was provided with `--config` or if the auto-saved file `yaspp.site.json` is found, try
 to refresh the site's content (clone or copy again) based on the values in the configuration.
-- `--no-content`: Skip copying, cloning or generating files.
+- `--no-content`: Skip copying/cloning site content and the yaspp library.
+- `--target <path/to/target/folder>`: absolute or relative path of the folder in which the project will be created. Defaults to current working directory. **The target 
 
 ### Project Configuration Options
 The generator prompts you for all the configuration values, but you can provide them in the command line.
 
-- `--config <path/to/yourconfig.json>`: Use the values stored in the provided configuration file
 - `--repository <git url>`: The content repository to clone. If provided, the repository will be cloned into the `site` folder.
 - `--branch <branch name>`: If provided, only this branch will be cloned from the repository.
 - `--path <path>`: The relative or absolute path in your file system, in which the site's content is located. If provided, the content
