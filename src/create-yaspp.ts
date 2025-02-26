@@ -8,7 +8,11 @@ import { parse as parseJSON } from 'json5';
 import readline from "readline";
 import OS from "os";
 
-import type { ErrorMessage, FileType, ICloneOptions, ICSYPSiteOptions, ICYSPArgv, ICYSPOptions, IMutableProcessOptions, IProcessOptions, IProcessOutput, IRemoveFolderOptions, IResponse, IYasppConfig, Mutable } from "./cystypes";
+import type { ErrorMessage, FileType, ICloneOptions, ICSYPSiteOptions,
+	ICYSPArgv, ICYSPOptions, IProcessOptions, IProcessOutput,
+	IRemoveFolderOptions, IResponse, IYasppConfig, Mutable
+} from "./cystypes";
+
 // Import generates an error due to some typing issue in @types/rimraf
 const rimraf = require("rimraf");
 
@@ -705,7 +709,7 @@ class CYSUtils {
 			return successResult(sitePath);
 		}
 		try {
-			await this.removeFolder({ path: sitePath, removeRoot: true });
+			await this.removeFolder({ path: sitePath, removeRoot: true, progress: true });
 			const branchArgs = branch ? ["--branch", branch, "--single-branch"] : [];
 			const args = ["clone", ...branchArgs, url];
 			if (folderName) {

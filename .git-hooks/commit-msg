@@ -3,8 +3,9 @@
 # A pre-commit hook script to that the code compiles
 
 echo  "===="
-echo "Precommit: Compiling before commit. Add FORCE to the END of your commit message to override"
+echo "Commit message hook: Compiling before commit. Add FORCE to the END of your commit message to override"
 echo  "===="
+
 MSGFILE="$1"
 
 if [  ! -e $MSGFILE ]; then
