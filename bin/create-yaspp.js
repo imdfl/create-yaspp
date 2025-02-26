@@ -106,7 +106,7 @@ function optionsToConfig(options, navPath) {
 async function generateYaspp(target, config, dry) {
     const yPath = path_1.default.resolve(target, YASPP_CONFIG);
     if (dry) {
-        console.log(`${t("generating")} ${YASPP_CONFIG}:\n`, config);
+        console.log(`${t("generating")} ${YASPP_CONFIG}:\n`, config, '\n');
     }
     else {
         const success = await utils.writeFile(yPath, stringify(config));

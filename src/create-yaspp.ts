@@ -121,7 +121,7 @@ function optionsToConfig(options: ICYSPOptions, navPath: string): IYasppConfig {
 async function generateYaspp(target: string, config: IYasppConfig, dry?: boolean): Promise<IResponse<string>> {
 	const yPath = fsPath.resolve(target, YASPP_CONFIG);
 	if (dry) {
-		console.log(`${t("generating")} ${YASPP_CONFIG}:\n`, config)
+		console.log(`${t("generating")} ${YASPP_CONFIG}:\n`, config, '\n')
 	}
 	else {
 		const success = await utils.writeFile(yPath, stringify(config));
