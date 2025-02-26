@@ -3,7 +3,7 @@
 # A pre-commit hook script to that the code compiles
 
 echo  "===="
-echo "Precommit: Compiling before commit. Add FORCE to the END of your commit message to override"
+echo "Precommit: Compiling before commit"
 echo  "===="
 
 LOGFILE=precommit.log
@@ -11,7 +11,7 @@ npx tsc > $LOGFILE 2>&1
 RESULT="$?"
 if [  "$RESULT" == "0" ]; then
 	echo "Compiled successfully"
-	git add bin/*
+	git add bin/*.js
 	exit 0
 fi
 echo "Compilation failed"
