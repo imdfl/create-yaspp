@@ -1,0 +1,42 @@
+#!/bin/sh
+#
+# A pre-commit hook script to that the code compiles
+
+echo  "===="
+echo "Commit message hook: Compiling before commit. Add FORCE to the END of your commit message to override"
+echo  "===="
+
+MSGFILE="$1"
+
+if [  ! -e $MSGFILE ]; then
+	echo  "log message not found"
+	exit 1
+fi
+LOGMESSAGE=`cat $MSGFILE`
+NONEMPTY=`echo "$LOGMESSAGE" | sed -n '/[^ \t,.]/p'`
+if [ "$NONEMPTY" == "" ]; then
+	echo "Empty log message"
+	exit 2
+fi
+FORCE=`echo "$LOGMESSAGE" | tail -1 | sed -n '/FORCE[ \t]*$/p'`
+if [ "$FORCE" != "" ]; then
+	echo Forced commit, skipping compilation
+	exit 0
+fi
+LOGFILE=precommit.log
+npx tsc > $LOGFILE 2>&1
+RESULT="$?"
+if [ -f $LOGFILE  ]; then
+	TSC_OUT=`cat $LOGFILE`
+	rm $LOGFILE
+else
+	TSC_OUT="(no log created)"
+fi
+
+if [  "$RESULT" == "0" ]; then
+	echo "Compiled successfully"
+	exit 0
+fi
+echo "Compilation failed"
+echo $TSC_OUT
+exit 3
