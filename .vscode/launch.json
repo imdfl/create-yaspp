@@ -41,10 +41,19 @@
 			}
 		},
 		{
+			"name": "Mel/Repo, no content",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "npx ts-node src/create-yaspp  --target /c/temp/mels-loop2 --auto --no-content --repository git@github.com:GetUnika/mels-loop-content.git --branch master",
+			"env": {
+				"NODE_OPTIONS": "--inspect"
+			}
+		},
+		{
 			"name": "Create Mel/Repo Only",
 			"type": "node-terminal",
 			"request": "launch",
-			"command": "npx ts-node src/create-yaspp --repository git@github.com:GetUnika/mels-loop-content.git --branch master --target /c/temp/mels-loop",
+			"command": "npx ts-node src/create-yaspp  --target /c/temp/mels-loop2 --repository git@github.com:GetUnika/mels-loop-content.git --branch master",
 			"env": {
 				"NODE_OPTIONS": "--inspect"
 			}

@@ -362,6 +362,9 @@ async function cloneYaspp(target: string, dry?: boolean): Promise<ErrorMessage> 
  */
 async function copyDefaultSite(target: string, dry: boolean): Promise<IResponse<string>> {
 	const trgFolder = fsPath.resolve(target, SITE_FOLDER);
+	if (!utils.isEmpty(trgFolder, false)) {
+		return successResult(trgFolder);
+	}
 	if (dry) {
 		return successResult(trgFolder);
 	}
@@ -430,11 +433,10 @@ async function finalizeProject({
 	if (installRes.status) {
 		return `Failed to run yarn/npm`;
 	}
-	const sitePath = utils.diffPaths(target, siteFolder) || ".";
 	const initRes = await utils.captureProcessOutput({
 		exe: "npx", onData, onError, dryrun,
 		cwd: target,
-		argv: ["ts-node", "yaspp/scripts/build/init-yaspp", "--project", sitePath]
+		argv: ["ts-node", "yaspp/scripts/build/init-yaspp", "--project", "."]
 	})
 	if (initRes.status) {
 		return `Failed to run init-yaspp: ${initRes.errors}`;
@@ -458,7 +460,7 @@ async function generateFiles(target: string, options: ICYSPOptions | null, dry?:
 		{ tmpl: "package.json", path: "package.json" },
 	];
 	for await (const { path, tmpl } of copies) {
-		const filePath = fsPath.resolve(PROJECT_ROOT, path);
+		const filePath = fsPath.resolve(target, path);
 		if (!await utils.isFileOrFolder(filePath)) {
 			const tmplData = await utils.getTemplate(tmpl);
 			if (!tmplData) {
@@ -536,7 +538,7 @@ async function loadConfigFromProject(sitePath: string, autoReply: boolean): Prom
 	const rawConfig = await utils.readJSON<IYasppConfig>(configPath);
 	const siteConfig = validateSiteConfig(rawConfig);
 	if (siteConfig && !autoReply) {
-		const useIt = await utils.confirm(t("prompt_site_config"));
+		const useIt = await utils.confirm(t("prompt_site_config"), true);
 		if (!useIt) {
 			return null;
 		}
@@ -668,6 +670,7 @@ async function main(args: Partial<ICYSPArgv>): Promise<ErrorMessage> {
 	return "";
 }
 
+const WIN_DEVICE_RE = /^([A-Z]):[\\\/]+/i; // eslint-disable-line no-useless-escape
 
 class CYSUtils {
 	private _dictionary = new Map<string, string | string[]>();
@@ -677,6 +680,20 @@ class CYSUtils {
 		const e = await this.readFile(tmplPath);
 		return e || "";
 	}
+
+	public normalizePath(path: string): string {
+		if (!path) {
+			return "";
+		}
+		const match = WIN_DEVICE_RE.exec( path );
+		let ret = "";
+		if (match) {
+			const drive = `/${match[1].toLowerCase()}/`;
+			ret = path.replace(WIN_DEVICE_RE, drive );
+		}
+		return ret.replace(/\\/g, '/' );
+	}
+
 
 	public async loadStrings(): Promise<boolean> {
 		const dictPath = fsPath.resolve(CSY_ROOT, "data/dict.json");
@@ -745,7 +762,7 @@ class CYSUtils {
 			if (retParts.length || ind >= toLen) {
 				retParts.push("..");
 			}
-			else if (fromParts[ind] !== toParts[ind]) {
+			else if (fromParts[ind].toLowerCase() !== toParts[ind].toLowerCase()) {
 				rest = toParts.slice(Math.min(ind, toParts.length - 1)).join('/');
 				retParts.push("..");
 			}
@@ -856,10 +873,13 @@ class CYSUtils {
 				}
 			}
 			try {
+				const processEnv = env ? {
+					...process.env, ...env
+				} : undefined;
 				const proc = spawn(exe, argv, {
 					shell: true,
 					cwd: cwd || process.cwd(),
-					env: env || {}
+					env: processEnv
 				});
 				if (progress) {
 					progress.interval = setInterval(progress.callback, 100);
