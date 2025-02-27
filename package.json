@@ -1,8 +1,8 @@
 {
   "name": "create-yaspp",
   "description": "Yaspp project generator",
-  "version": "1.0.2",
-  "author": "(David *)Frenkiel <dfl.github@gmail.com>",
+  "version": "1.0.15",
+  "author": "(David *)Frenkiel (imdfl on github)",
   "keywords": [
     "yaspp",
     "generator",
@@ -34,7 +34,8 @@
   },
   "files": [
     "LICENSE",
-    "bin/"
+    "bin/",
+    "data/*"
   ],
   "scripts": {
     "clean": "rm -rf site yaspp",

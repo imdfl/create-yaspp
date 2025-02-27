@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# A pre-commit hook script to that the code compiles
+
+echo  "===="
+echo "Precommit: Compiling before commit"
+echo  "===="
+
+LOGFILE=precommit.log
+npx tsc > $LOGFILE 2>&1
+RESULT="$?"
+if [  "$RESULT" == "0" ]; then
+	echo "Compiled successfully"
+	git add bin/*.js
+	exit 0
+fi
+echo "Compilation failed"
+exit 3

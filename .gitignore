@@ -5,3 +5,4 @@ yaspp
 yaspp*.json
 **/*.map
 site
+.vscode/settings.json

@@ -1,13 +1,19 @@
 export type Nullable<T extends object> = T | null;
+export type ErrorMessage = string;
 
 export type Mutable<T> = {
     -readonly [P in keyof T]: T[P];
   };
 
-export interface ICYSPOptions {
+export interface ICSYPSiteOptions {
 	readonly path: string;
 	readonly repository: string;
-    readonly branch: string;
+    readonly branch?: string;
+	readonly clean: boolean;
+}
+
+export interface ICYSPOptions extends ICSYPSiteOptions{
+	readonly target: string;
     readonly contentRoot: string;
     readonly contentIndex: string;
     readonly localeRoot: string;
@@ -18,19 +24,26 @@ export interface ICYSPOptions {
     readonly defaultLocale?: string;
 }
 
+
+export interface ICYSPArgv extends Partial<ICYSPOptions> {
+	readonly dryrun: boolean;
+	readonly help: boolean;
+	readonly version: boolean;
+	readonly config: string;
+	readonly autoReply: boolean;
+	readonly refresh: boolean;
+	readonly content: boolean;
+}
+
 export interface ICloneOptions {
 	readonly url: string;
 	readonly folderName?: string;
 	readonly branch?: string;
-	readonly dry?: boolean
-}
-
-export interface ICYSPArgv extends Partial<ICYSPOptions> {
 	readonly dry?: boolean;
-	readonly help?: boolean;
-	readonly version?: boolean;
-	readonly config?: string;
-	readonly refresh?: boolean;
+	/**
+	 * Full path
+	 */
+	readonly parentFolder: string;
 }
 
 export interface IResponse<T> {
@@ -47,15 +60,13 @@ export interface IRemoveFolderOptions {
 	 * If true, return an error if the folder does not  exist
 	 */
 	readonly mustExist?: boolean;
+	readonly progress?: boolean;
 }
-
-
-export type IProcessOptions = Readonly<IMutableProcessOptions>;
 
 
 export interface IProcessOutput {
 	readonly output: ReadonlyArray<string>;
-	readonly error: ReadonlyArray<string>;
+	readonly errors: ReadonlyArray<string>;
 	readonly status: number;
 }
 
@@ -85,7 +96,20 @@ export interface IMutableProcessOptions {
      * If true, log the error, if a function call it on every stderr data
      */
 	onError?: ((data: string) => void) | boolean;
+
+	/**
+	 * If true, only log the command to console
+	 */
+	dryrun?: boolean;
+	/**
+	 * Suppress output
+	 */
+	quiet?: boolean;
+
+	onProgress?: (() => unknown) | boolean;
 }
+
+export type IProcessOptions = Readonly<IMutableProcessOptions>;
 
 export interface IProjectLocaleConfig {
 	readonly langs: ReadonlyArray<string>;
@@ -101,6 +125,15 @@ interface IYasppBaseConfig {
 }
 
 export type IYasppLocaleConfig = IProjectLocaleConfig & IYasppBaseConfig;
+
+export interface IYasppAppNavConfig {
+	/**
+	 * Path to navigation configuration file
+	 */
+	readonly index: string;
+
+}
+
 export interface IYasppContentConfig extends IYasppBaseConfig{
 	/**
 	 * Mandatory path to index folder relative to the content root folder, e.g. `docs` which is expected to contain
@@ -124,6 +157,8 @@ export type IYasppAssetsConfig = IYasppBaseConfig;
 export interface IYasppConfig {
 	readonly content: IYasppContentConfig;
 	readonly locale: IYasppLocaleConfig;
+	readonly nav: IYasppAppNavConfig;
 	readonly style?: IYasppStyleConfig;
-	readonly assets?: IYasppStyleConfig;
+	readonly assets?: IYasppAssetsConfig;
+
 }
