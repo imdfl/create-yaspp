@@ -1,0 +1,6 @@
+{
+	"items:articles:1:label": "First Article",
+	"items:articles:2:label": "Second Article",
+	"items:pages:about:desc": "About this site",
+	"links:issues": "https://github.com/imdfl/create-yaspp/issues"
+}

@@ -5,10 +5,10 @@
     "version": "0.2.0",
     "configurations": [
 		{
-			"name": "Create JS",
+			"name": "Sample Site",
 			"type": "node-terminal",
 			"request": "launch",
-			"command": "npx ts-node src/create-yaspp --repository git@github.com:imdfl/jehovascript-content.git --content-root content --content-index . --locale-root locales --langs en,he --branch master",
+			"command": "npx ts-node src/create-yaspp --target /c/temp/sample-yaspp",
 			"env": {
 				"NODE_OPTIONS": "--inspect"
 			}
