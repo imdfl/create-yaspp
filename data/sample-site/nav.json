@@ -25,10 +25,8 @@
             "title": "nav:sections:articles:label",
             "locale": {},
             "items": [
-                "preface",
-                "mel-kaye-bio",
-                "mels-hack-the-missing-bits",
-                "resources"
+                "first",
+                "second"
             ]
         },
         "contact": {
@@ -77,86 +75,45 @@
                 "author": "authors:yaspp"
             }
         },
-        "second": {
-            "type": "article",
-            "url": "/docs/doc1",
-            "icon": "article",
-            "title": "nav:items:articles:1:label",
-            "locale": {
-                "author": "authors:yaspp"
-            }
-        },
-        "mels-hack-the-missing-bits": {
-            "type": "article",
-            "url": "/docs/the-story-of-mel/pages/mels-hack-the-missing-bits",
-            "icon": "article",
-            "title": "nav:items:articles:som:missingBits:label",
-            "locale": {
-                "author": "authors:dfl"
-            }
-        },
-        "resources": {
-            "type": "page",
-            "url": "/docs/the-story-of-mel/pages/resources",
-            "icon": "list",
-            "title": "nav:items:pages:resources:label",
-            "locale": {
-                "description": "nav:items:pages:resources:desc"
-            }
-        },
-        "about": {
-            "type": "page",
-            "url": "/about",
-            "title": "nav:items:pages:about:label",
-            "locale": {
-                "description": "nav:items:pages:about:desc"
-            }
-        },
-        "about-mobile": {
-            "type": "page",
-            "url": "/about",
-            "title": "nav:items:pages:about:label",
-            "locale": {
-                "description": "nav:items:pages:about:desc"
-            }
-        },
-        "blog": {
-            "type": "page",
-            "url": "/posts",
-            "title": "nav:items:pages:blog:label",
-            "locale": {
-                "description": "nav:items:pages:blog:desc"
-            }
-        },
-        "contribute": {
-            "type": "page",
-            "url": "/contribute",
-            "title": "nav:items:pages:contrib:label",
-            "locale": {
-                "description": "nav:items:pages:contrib:desc"
-            }
-        },
-        "contact": {
-            "type": "page",
-            "url": "/contact",
-            "icon": "pencil",
-            "title": "nav:items:pages:contact:label",
-            "locale": {
-                "description": "nav:items:pages:contact:desc"
-            }
-        },
         "twitter": {
             "type": "external",
-            "url": "https://twitter.com/aboutmelsloop",
+            "url": "https://x.com",
             "icon": "𝕏",
             "title": "nav:items:links:twitter:label",
             "locale": {
                 "description": "nav:items:links:twitter:desc"
             }
         },
+        "second": {
+            "type": "article",
+            "url": "/docs/doc2",
+            "icon": "file-text",
+            "title": "nav:items:articles:2:label",
+            "locale": {
+                "author": "authors:yaspp"
+            }
+        },
+        "about": {
+            "type": "page",
+            "url": "/about",
+            "icon": "?",
+            "title": "nav:items:pages:about:label",
+            "locale": {
+                "description": "nav:items:pages:about:desc"
+            }
+        },
+        "contact": {
+            "type": "page",
+            "url": "/contact",
+            "icon": "email",
+            "title": "nav:items:pages:contact:label",
+            "locale": {
+                "description": "nav:items:pages:contact:desc"
+            }
+        },
         "github": {
             "type": "external",
-            "url": "https://github.com/tomerlichtash/mels-loop",
+            "url": "https://github.com/imdfl/yaspp",
             "icon": "github",
             "target": "_blank",
             "title": "nav:items:links:github:label",
