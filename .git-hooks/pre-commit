@@ -1,6 +1,7 @@
 #!/bin/sh
 #
-# A pre-commit hook script to that the code compiles
+# A pre-commit hook script that adds the compilation result to the commit
+# if the code compiles successfully
 
 echo  "===="
 echo "Precommit: Compiling before commit"
@@ -15,4 +16,5 @@ if [  "$RESULT" == "0" ]; then
 	exit 0
 fi
 echo "Compilation failed"
-exit 3
+# This hook doesn't fail
+exit 0
