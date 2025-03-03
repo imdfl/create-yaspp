@@ -18,7 +18,7 @@ to refresh the site's content (clone or copy again) based on the values in the c
 - `--target <path/to/target/folder>`: absolute or relative path of the folder in which the project will be created. Defaults to current working directory. **The target 
 
 ### Project Configuration Options
-The generator prompts you for all the configuration values, but you can provide them in the command line.
+The generator prompts you for all the configuration values, but you can provide them in the command line. If you specify `--auto`, they will be used without prompting.
 
 - `--repository <git url>`: The content repository to clone. If provided, the repository will be cloned into the `site` folder.
 - `--branch <branch name>`: If provided, only this branch will be cloned from the repository.
@@ -36,12 +36,19 @@ will be copied to the `site` folder.
 
 ## Install procedure
 
-After the configuration is validated, `create-yaspp` performs the following actions:
+The rest of this document uses the `yarn` command. You can replace it with your favorite package runner, e.g. `npm run ...`.
+
+After the command line options are validated, `create-yaspp` performs the following actions:
+1. Prompt the user for an optioal data source for the site - file system folder or git repository.
 1. If a repository or a file system path were provided, clone/copy that data source into the `site` folder  
-Otherwise create a sample site.
+Otherwise create a sample site under that folder.
 2. If a `yaspp.config.json` file is found in the root folder of the `site` folder, offer to use this configuration  
 If no configuration is found or used, prompt the user for the required options.
 2. Clone the [`Yaspp`](https://github.com/imdfl/yaspp) project into the `yaspp` folder
 3. Save the configuration in `yaspp.config.json` under the project root.
 4. Copy default `.gitignore` and `package.json` to the project root, unless these files already exist.
 5. Setup the `yaspp` platform by running the required scripts there.
+
+## Post install
+
+See the [`Yaspp project`](https://github.com/imdfl/yaspp) for details about building and publishing a `yaspp` site. If the installation completed successfully, you should be able to test your site by running `yarn dev` in the project root or in the `yaspp` folder.
