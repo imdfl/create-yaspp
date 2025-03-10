@@ -20,9 +20,9 @@ to refresh the site's content (clone or copy again) based on the values in the c
 ### Project Configuration Options
 The generator prompts you for all the configuration values, but you can provide them in the command line. If you specify `--auto`, they will be used without prompting.
 
-- `--repository <git url>`: The content repository to clone. If provided, the repository will be cloned into the `site` folder.
+- `--site <git url>|<path>`: The data source to clone for the site. This can be a git url url of a repository to clone or a file system path. If provided, all the content from this source is copied into into the `site` folder.
 - `--branch <branch name>`: If provided, only this branch will be cloned from the repository.
-- `--path <path>`: The relative or absolute path in your file system, in which the site's content is located. If provided, the content
+- `--path <path>`: . If provided, the content
 will be copied to the `site` folder.
 - `--content-root <path>`: Your top level content folder (the markdown files), relative to project root. Before build, this folder's content is copied to `yaspp/public/yaspp/content`
 - `--content-index <path>`: Relative to content root. This is the path to the folder that contains the page to show in the root url

@@ -211,32 +211,25 @@ async function getContentConfiguration(args, autoReply) {
     if (!autoReply) {
         console.log(t("content_instructions"));
     }
-    if (!args.path) {
-        options.repository = await utils.readInput({
-            msg: t("prompt_repo"), defaultValue: args.repository, autoReply
-        });
-    }
-    if (!options.repository) {
-        options.path = await utils.readInput({
-            msg: t("prompt_path"), defaultValue: args.path, autoReply
-        });
-    }
-    if (options.repository && options.path) {
-        errors.push("Can't specify both path and repository");
-    }
-    if (options.path) {
-        const fullPath = path_1.default.resolve(PROJECT_ROOT, options.path);
-        if (!await utils.isFolder(fullPath)) {
-            errors.push(`Content path ${options.path} not found (${fullPath})`);
+    options.site = await utils.readInput({
+        msg: t("prompt_repo"), defaultValue: args.site, autoReply
+    });
+    const isGit = utils.isGitUrl(options.site);
+    if (options.site) {
+        if (isGit) {
+            options.branch = await utils.readInput({
+                msg: t("prompt_branch"),
+                defaultValue: args.branch, autoReply
+            });
+        }
+        else {
+            const fullPath = path_1.default.resolve(PROJECT_ROOT, options.site);
+            if (!await utils.isFolder(fullPath)) {
+                errors.push(`Content path ${options.site} not found (${fullPath})`);
+            }
         }
     }
-    if (options.repository) {
-        options.branch = await utils.readInput({
-            msg: t("prompt_branch"),
-            defaultValue: args.branch, autoReply
-        });
-    }
-    else if (args.branch) {
+    if (args.branch && !isGit) {
         errors.push(`You specified branch ${args.branch} without a site repository`);
     }
     console.log(t("prompt_print"));
@@ -346,13 +339,12 @@ async function copyDefaultSite(target, dry) {
  * @returns
  */
 async function copySiteContent(options, target, dry = false) {
-    if (options.path) {
-        const copyRes = await copyContent(options.path, target, dry);
-        return copyRes;
+    if (!options.site) {
+        return await copyDefaultSite(target, dry);
     }
-    else if (options.repository) {
+    if (utils.isGitUrl(options.site)) {
         const cloneRes = await utils.cloneRepository({
-            url: options.repository,
+            url: options.site,
             parentFolder: target,
             branch: options.branch,
             dry,
@@ -360,10 +352,10 @@ async function copySiteContent(options, target, dry = false) {
         });
         return cloneRes;
     }
-    else { // no repo or content folder
-        return await copyDefaultSite(target, dry);
+    else {
+        const copyRes = await copyContent(options.site, target, dry);
+        return copyRes;
     }
-    // const finalOptions = adaptOptionsToPath(options, contentPath);
 }
 async function finalizeProject({ target, tools, dryrun, siteFolder }) {
     if (!tools.yarn && !tools.npm) {
@@ -604,9 +596,13 @@ async function main(args) {
     return "";
 }
 const WIN_DEVICE_RE = /^([A-Z]):[\\\/]+/i; // eslint-disable-line no-useless-escape
+const GIT_URL_RE = /(?:git|ssh|https?|git@[-\w.]+):(\/\/)?(.*?)(\.git)(\/?|\#[-\d\w._]+?)$/;
 class CYSUtils {
     constructor() {
         this._dictionary = new Map();
+    }
+    isGitUrl(url) {
+        return GIT_URL_RE.test(url ?? "");
     }
     async getTemplate(name) {
         const tmplPath = path_1.default.resolve(CSY_ROOT, "data/templates", `${name}.tmpl`);
@@ -1077,8 +1073,6 @@ const utils = new CYSUtils();
 const unknownArgs = [];
 const args = (0, minimist_1.default)(process.argv.slice(2), {
     alias: {
-        R: "repository",
-        P: "path",
         D: "dryrun",
         V: "version",
         T: "target",
@@ -1093,7 +1087,7 @@ const args = (0, minimist_1.default)(process.argv.slice(2), {
     },
     "boolean": ["content", "version", "dryrun", "help", "refresh", "auto"],
     "default": { target: ".", dry: false, "default-locale": "en", "content": true },
-    "string": ["config", "target", "repository", "path", "branch", "langs",
+    "string": ["config", "target", "site", "branch", "langs",
         "content-root", "content-index", "locale-root", "assets-root",
         "style-root", "style-index"],
     "unknown": (s) => {

@@ -17,7 +17,7 @@
 			"name": "Create JS in Temp",
 			"type": "node-terminal",
 			"request": "launch",
-			"command": "npx ts-node src/create-yaspp --target /c/temp/jehovascript --repository git@github.com:imdfl/jehovascript-content.git --content-root content --content-index . --assets-root=assets --locale-root locales --langs en,he --branch master",
+			"command": "npx ts-node src/create-yaspp --target /c/temp/jehovascript --site git@github.com:imdfl/jehovascript-content.git --content-root content --content-index . --assets-root=assets --locale-root locales --langs en,he --branch master",
 			"env": {
 				"NODE_OPTIONS": "--inspect"
 			}
@@ -26,7 +26,7 @@
 			"name": "No Content JS in Temp",
 			"type": "node-terminal",
 			"request": "launch",
-			"command": "npx ts-node src/create-yaspp --target /c/temp/jehovascript --repository git@github.com:imdfl/jehovascript-content.git --content-root content --content-index . --assets-root=assets --locale-root locales --langs en,he --branch master --no-content --auto",
+			"command": "npx ts-node src/create-yaspp --target /c/temp/jehovascript --site git@github.com:imdfl/jehovascript-content.git --content-root content --content-index . --assets-root=assets --locale-root locales --langs en,he --branch master --no-content --auto",
 			"env": {
 				"NODE_OPTIONS": "--inspect"
 			}
@@ -35,7 +35,7 @@
 			"name": "Create Repo-Mel",
 			"type": "node-terminal",
 			"request": "launch",
-			"command": "npx ts-node src/create-yaspp --repository git@github.com:GetUnika/mels-loop-content.git --content-root public/content --content-index . --locale-root locales --langs en,he --branch master",
+			"command": "npx ts-node src/create-yaspp --site git@github.com:GetUnika/mels-loop-content.git --content-root public/content --content-index . --locale-root locales --langs en,he --branch master",
 			"env": {
 				"NODE_OPTIONS": "--inspect"
 			}
@@ -44,7 +44,7 @@
 			"name": "Mel/Repo, no content",
 			"type": "node-terminal",
 			"request": "launch",
-			"command": "npx ts-node src/create-yaspp  --target /c/temp/mels-loop2 --auto --no-content --repository git@github.com:GetUnika/mels-loop-content.git --branch master",
+			"command": "npx ts-node src/create-yaspp  --target /c/temp/mels-loop2 --auto --no-content --site git@github.com:GetUnika/mels-loop-content.git --branch master",
 			"env": {
 				"NODE_OPTIONS": "--inspect"
 			}
@@ -53,7 +53,7 @@
 			"name": "Create Mel/Repo Only",
 			"type": "node-terminal",
 			"request": "launch",
-			"command": "npx ts-node src/create-yaspp  --target /c/temp/mels-loop2 --repository git@github.com:GetUnika/mels-loop-content.git --branch master",
+			"command": "npx ts-node src/create-yaspp  --target /c/temp/mels-loop2 --site git@github.com:GetUnika/mels-loop-content.git --branch master",
 			"env": {
 				"NODE_OPTIONS": "--inspect"
 			}
@@ -62,7 +62,7 @@
 			"name": "Create Mel",
 			"type": "node-terminal",
 			"request": "launch",
-			"command": "npx ts-node src/create-yaspp --repository git@github.com:tomerlichtash/mels-loop.git --content-root public/content --content-index docs/the-story-of-mel/codex --locale-root src/locales --langs en,he --branch master",
+			"command": "npx ts-node src/create-yaspp --site git@github.com:tomerlichtash/mels-loop.git --content-root public/content --content-index docs/the-story-of-mel/codex --locale-root src/locales --langs en,he --branch master",
 			"env": {
 				"NODE_OPTIONS": "--inspect"
 			}
@@ -71,7 +71,7 @@
 			"name": "Dry/Create Mel",
 			"type": "node-terminal",
 			"request": "launch",
-			"command": "npx ts-node src/create-yaspp --dry --repository git@github.com:tomerlichtash/mels-loop.git --content-root public/content --content-index docs/the-story-of-mel/codex --locale-root src/locales --langs en,he --branch master",
+			"command": "npx ts-node src/create-yaspp --dry --site git@github.com:tomerlichtash/mels-loop.git --content-root public/content --content-index docs/the-story-of-mel/codex --locale-root src/locales --langs en,he --branch master",
 			"env": {
 				"NODE_OPTIONS": "--inspect"
 			}

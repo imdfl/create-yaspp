@@ -6,9 +6,8 @@ export type Mutable<T> = {
   };
 
 export interface ICSYPSiteOptions {
-	readonly path: string;
-	readonly repository: string;
-    readonly branch?: string;
+	readonly site: string;
+    readonly branch: string;
 	readonly clean: boolean;
 }
 
@@ -110,55 +109,3 @@ export interface IMutableProcessOptions {
 }
 
 export type IProcessOptions = Readonly<IMutableProcessOptions>;
-
-export interface IProjectLocaleConfig {
-	readonly langs: ReadonlyArray<string>;
-	readonly defaultLocale: string;
-	readonly pages: Record<string, ReadonlyArray<string>>;
-}
-
-interface IYasppBaseConfig {
-	/**
-	 * Relative to project root, all content is copied to `/public`, e.g. `/public/content`, `/public/locales`
-	 */
-	readonly root: string;
-}
-
-export type IYasppLocaleConfig = IProjectLocaleConfig & IYasppBaseConfig;
-
-export interface IYasppAppNavConfig {
-	/**
-	 * Path to navigation configuration file
-	 */
-	readonly index: string;
-
-}
-
-export interface IYasppContentConfig extends IYasppBaseConfig{
-	/**
-	 * Mandatory path to index folder relative to the content root folder, e.g. `docs` which is expected to contain
-	 * at least a content folder for the default locale, e.g. 'en'
-	 */
-	readonly index: string;
-}
-
-export interface IYasppStyleConfig extends IYasppBaseConfig {
-	/**
-	 * Optional Path to main css file, relative to the style root , defaults to site.scss (generated if no css is provided by the user)
-	 */
-	readonly index?: string;
-}
-
-export type IYasppAssetsConfig = IYasppBaseConfig;
-
-/**
- * Project configuration file
- */
-export interface IYasppConfig {
-	readonly content: IYasppContentConfig;
-	readonly locale: IYasppLocaleConfig;
-	readonly nav: IYasppAppNavConfig;
-	readonly style?: IYasppStyleConfig;
-	readonly assets?: IYasppAssetsConfig;
-
-}
