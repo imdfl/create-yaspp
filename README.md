@@ -11,10 +11,9 @@ To use this package, you do not need to install it. Simply `cd` to the folder in
 ### Runtime Options
 - `--dryrun`: Dry run. Print all the steps and the resulting configuration.
 - `--auto`: If the configuration process involves interaction with the user, then `create-yaspp` will use the values provided in the command line without prompting the user for input.
-- `--target <path/to/target/folder>`: absolute or relative path of the folder in which the project will be created. Defaults to current working directory. **The target 
+- `--target <path/to/target/folder>`: absolute or relative path of the folder in which the project will be created. Defaults to current working directory. **The target directory must be empty**.
 
 ### Project Configuration Options
-The generator prompts you for all the configuration values, but you can provide them in the command line. If you specify `--auto`, they will be used without prompting.
 
 - `--branch <branch name>`: If provided, clone this branch of the `yaspp` library rather than `master`.
 

@@ -16,9 +16,7 @@ const rimraf = require("rimraf");
 const CSY_ROOT = path_1.default.resolve(__dirname, "..");
 const PROJECT_ROOT = process.cwd();
 const YASPP_REPO_URL = "git@github.com:imdfl/yaspp.git";
-const SAVED_CONFIG = "yaspp.site.json";
 const YASPP_CONFIG = "yaspp.config.json";
-const YASPP_NAV = "yaspp.nav.json";
 const SITE_FOLDER = "site";
 function errorResult(err) {
     return {
@@ -92,9 +90,9 @@ async function loadTools() {
     }
     return ret;
 }
-async function cloneYaspp(target, dry) {
+async function cloneYaspp(target, branch, dry) {
     const yRes = await utils.cloneRepository({
-        url: YASPP_REPO_URL, branch: "master", dry, parentFolder: target
+        url: YASPP_REPO_URL, branch, dry, parentFolder: target
     });
     return yRes.error ?
         `Clone error: ${yRes.error}` : "";
@@ -119,7 +117,7 @@ async function finalizeProject({ target, tools, dryrun, siteFolder }) {
     if (!tools.yarn && !tools.npm) {
         return "neither yarn nor npm available";
     }
-    function toCommandLine(script, argv) {
+    function toCommandLine(script, ...argv) {
         return tools.yarn ? {
             exe: "yarn",
             argv: [script].concat(argv)
@@ -131,7 +129,7 @@ async function finalizeProject({ target, tools, dryrun, siteFolder }) {
     const onData = true, onError = true;
     const installRes = await utils.captureProcessOutput({
         cwd: path_1.default.resolve(target, "yaspp"), onData, onError, dryrun, onProgress: true,
-        ...toCommandLine("install", [])
+        ...toCommandLine("install")
     });
     if (installRes.status) {
         return `Failed to run yarn/npm`;
@@ -231,7 +229,7 @@ async function loadConfigFromProject(sitePath, autoReply) {
     return siteConfig;
 }
 async function main(args) {
-    const { dryrun: dry, version, help, autoReply = false, ...rest } = args;
+    const { dryrun: dry = false, version, help, branch = "master" } = args;
     // console.log("create yaspp", args);
     if (help) {
         console.log(t("help"));
@@ -261,7 +259,7 @@ async function main(args) {
         return siteRes.error;
     }
     const sitePath = siteRes.result;
-    const yspErr = await cloneYaspp(target, dry);
+    const yspErr = await cloneYaspp(target, branch, dry);
     if (yspErr) {
         return yspErr;
     }
@@ -746,7 +744,7 @@ class CYSUtils {
                 break;
         }
         try {
-            (0, child_process_1.spawn)(cmd, [path], { detached: true });
+            (0, child_process_1.spawn)(cmd, [path]);
             return true;
         }
         catch (e) {
@@ -761,6 +759,7 @@ const args = (0, minimist_1.default)(process.argv.slice(2), {
         D: "dryrun",
         V: "version",
         T: "target",
+        B: "branch",
         "autoReply": "auto",
         // defaultLocale: "default-locale",
         // contentRoot: "content-root",
@@ -771,8 +770,8 @@ const args = (0, minimist_1.default)(process.argv.slice(2), {
         // styleSheets: "style-sheets",
     },
     "boolean": ["version", "dryrun", "help", "auto"],
-    "default": { target: ".", dry: false },
-    "string": ["target"],
+    "default": { target: ".", dryrun: false, "auto": false },
+    "string": ["target", "branch"],
     "unknown": (s) => {
         const isArg = s.charAt(0) === "-";
         if (isArg) {

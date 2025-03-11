@@ -10,8 +10,8 @@ import OS from "os";
 
 import type {
 	ErrorMessage, FileType, ICloneOptions,
-	ICYSPArgv, ICYSPOptions, IProcessOptions, IProcessOutput,
-	IRemoveFolderOptions, IResponse, Mutable
+	ICYSPArgv, IProcessOptions, IProcessOutput,
+	IRemoveFolderOptions, IResponse
 } from "./cystypes";
 
 import type { YASPP } from "yaspp-types";
@@ -23,9 +23,7 @@ const rimraf = require("rimraf");
 const CSY_ROOT = fsPath.resolve(__dirname, "..");
 const PROJECT_ROOT = process.cwd();
 const YASPP_REPO_URL = "git@github.com:imdfl/yaspp.git";
-const SAVED_CONFIG = "yaspp.site.json";
 const YASPP_CONFIG = "yaspp.config.json";
-const YASPP_NAV = "yaspp.nav.json";
 const SITE_FOLDER = "site";
 
 function errorResult<T>(err: string): IResponse<T> {
@@ -110,9 +108,9 @@ async function loadTools(): Promise<Record<string, string>> {
 
 }
 
-async function cloneYaspp(target: string, dry?: boolean): Promise<ErrorMessage> {
+async function cloneYaspp(target: string, branch: string, dry?: boolean): Promise<ErrorMessage> {
 	const yRes = await utils.cloneRepository({
-		url: YASPP_REPO_URL, branch: "master", dry, parentFolder: target
+		url: YASPP_REPO_URL, branch, dry, parentFolder: target
 	});
 	return yRes.error ?
 		`Clone error: ${yRes.error}` : ""
@@ -149,7 +147,7 @@ async function finalizeProject({
 	if (!tools.yarn && !tools.npm) {
 		return "neither yarn nor npm available";
 	}
-	function toCommandLine(script: string, argv: string[]): { exe: string, argv: string[] } {
+	function toCommandLine(script: string, ...argv: string[]): { exe: string, argv: string[] } {
 		return tools.yarn ? {
 			exe: "yarn",
 			argv: [script].concat(argv)
@@ -162,7 +160,7 @@ async function finalizeProject({
 
 	const installRes = await utils.captureProcessOutput({
 		cwd: fsPath.resolve(target, "yaspp"), onData, onError, dryrun, onProgress: true,
-		...toCommandLine("install", [])
+		...toCommandLine("install")
 	});
 	if (installRes.status) {
 		return `Failed to run yarn/npm`;
@@ -270,7 +268,7 @@ async function loadConfigFromProject(sitePath: string, autoReply: boolean): Prom
 }
 
 async function main(args: Partial<ICYSPArgv>): Promise<ErrorMessage> {
-	const { dryrun: dry, version, help, autoReply = false, ...rest } = args;
+	const { dryrun: dry = false, version, help, branch = "master" } = args;
 	// console.log("create yaspp", args);
 	if (help) {
 		console.log(t("help"));
@@ -300,7 +298,7 @@ async function main(args: Partial<ICYSPArgv>): Promise<ErrorMessage> {
 	}
 	const sitePath = siteRes.result!;
 
-	const yspErr = await cloneYaspp(target, dry);
+	const yspErr = await cloneYaspp(target, branch, dry);
 	if (yspErr) {
 		return yspErr;
 	}
@@ -400,7 +398,6 @@ class CYSUtils {
 			return errorResult(`Error cloning ${url}:\n${e}`);
 		}
 	}
-
 
 	/**
 	* Both paths point to folders
@@ -824,7 +821,7 @@ class CYSUtils {
 				break;
 		}
 		try {
-			spawn(cmd, [path], { detached: true });
+			spawn(cmd, [path]);
 			return true;
 		}
 		catch (e) {
@@ -843,6 +840,7 @@ const args = parseArgs(process.argv.slice(2), {
 		D: "dryrun",
 		V: "version",
 		T: "target",
+		B: "branch",
 		"autoReply": "auto",
 		// defaultLocale: "default-locale",
 		// contentRoot: "content-root",
@@ -854,8 +852,8 @@ const args = parseArgs(process.argv.slice(2), {
 
 	},
 	"boolean": ["version", "dryrun", "help", "auto"],
-	"default": { target: ".", dry: false },
-	"string": ["target"],
+	"default": { target: ".", dryrun: false, "auto": false },
+	"string": ["target", "branch"],
 	"unknown": (s: string) => {
 		const isArg = s.charAt(0) === "-";
 		if (isArg) {
