@@ -42,8 +42,7 @@
             "title": "nav:sections:about:label",
             "locale": {},
             "items": [
-                "about-mobile",
-                "blog"
+                "about"
             ]
         },
         "pages": {
@@ -51,8 +50,7 @@
             "locale": {},
             "items": [
                 "about",
-                "blog",
-                "contribute"
+                "first"
             ]
         },
         "links": {

@@ -16,9 +16,7 @@ const rimraf = require("rimraf");
 const CSY_ROOT = path_1.default.resolve(__dirname, "..");
 const PROJECT_ROOT = process.cwd();
 const YASPP_REPO_URL = "git@github.com:imdfl/yaspp.git";
-const SAVED_CONFIG = "yaspp.site.json";
 const YASPP_CONFIG = "yaspp.config.json";
-const YASPP_NAV = "yaspp.nav.json";
 const SITE_FOLDER = "site";
 function errorResult(err) {
     return {
@@ -52,249 +50,25 @@ function exit(err) {
     process.exit(err ? 1 : 0);
 }
 /**
- * Hard coded destination folder "site" under cwd
- * @param path the path to
- * @param dry
- * @returns
- */
-async function copyContent(path, target, dry) {
-    const srcPath = path_1.default.resolve(PROJECT_ROOT, path);
-    const sitePath = path_1.default.resolve(target, SITE_FOLDER);
-    try {
-        console.log(`${t("copying")} ${path} (${srcPath})`);
-        if (dry) {
-            return successResult("");
-        }
-        const copyErr = await utils.copyFolderContent(srcPath, sitePath);
-        return copyErr ? errorResult(copyErr) : successResult(sitePath);
-    }
-    catch (error) {
-        return errorResult(`Error copying content from ${path} (${srcPath})`);
-    }
-}
-function optionsToConfig(options, navPath) {
-    return {
-        content: {
-            root: options.contentRoot,
-            index: options.contentIndex,
-        },
-        nav: {
-            index: navPath
-        },
-        locale: {
-            root: options.localeRoot,
-            langs: utils.parseLangs(options.langs),
-            defaultLocale: options.defaultLocale,
-            pages: {}
-        },
-        style: options.styleRoot ? {
-            root: options.styleRoot,
-            index: options.styleIndex
-        } : undefined,
-        assets: options.assetsRoot ? {
-            root: options.assetsRoot
-        } : undefined
-    };
-}
-/**
  * Generates yaspp.config.json in the root folder of the project
  * @param target path to target folder
  * @param config the configuration to write
  * @param dry
  * @returns
  */
-async function generateYaspp(target, config, dry) {
+async function generateYasppConfig(target, config, dry) {
     const yPath = path_1.default.resolve(target, YASPP_CONFIG);
     if (dry) {
         console.log(`${t("generating")} ${YASPP_CONFIG}:\n`, config, '\n');
     }
     else {
-        const success = await utils.writeFile(yPath, stringify(config));
+        const data = typeof config === "string" ? config : stringify(config);
+        const success = await utils.writeFile(yPath, data);
         if (!success) {
             return errorResult(`Failed to generate ${YASPP_CONFIG}`);
         }
     }
     return successResult(yPath);
-}
-/**
- * Interactively read the full configuration, providing the values in args as defaults
- * @param args
- * @param autoReply if true, don't prompt the user for input, use the provided values
- * @returns either error or a full configuration
- */
-async function getConfiguration(args, autoReply) {
-    const options = {};
-    autoReply = autoReply === true;
-    const errors = [];
-    const mandatory = true;
-    options.contentRoot = await utils.readInput({
-        msg: t("prompt_content_folder"), defaultValue: args.contentRoot, mandatory, autoReply
-    });
-    if (!options.contentRoot) {
-        errors.push(`Content root cannot be empty`);
-    }
-    options.contentIndex = await utils.readInput({
-        msg: t("prompt_content_index"), mandatory,
-        defaultValue: args.contentIndex, autoReply
-    });
-    if (!options.contentIndex) {
-        errors.push(`Content index cannot be empty`);
-    }
-    options.localeRoot = await utils.readInput({
-        msg: t("prompt_locale_root"),
-        defaultValue: args.localeRoot, mandatory, autoReply
-    });
-    if (!options.localeRoot) {
-        errors.push(`Locale root cannot be empty`);
-    }
-    options.styleRoot = await utils.readInput({
-        msg: t("prompt_style_root"),
-        defaultValue: args.styleRoot, autoReply
-    });
-    if (options.styleRoot) {
-        let ind = await utils.readInput({
-            msg: t("prompt_style_index"),
-            defaultValue: args.styleIndex, mandatory, autoReply
-        });
-        if (ind && !ind.includes('.')) {
-            ind += ".scss";
-        }
-        options.styleIndex = ind;
-        if (!options.styleIndex) {
-            errors.push(`You specified styles root ${options.styleRoot}, so style index (custom scss file) cannot be empty`);
-        }
-    }
-    options.assetsRoot = await utils.readInput({
-        msg: t("prompt_assets_root"),
-        defaultValue: args.assetsRoot, autoReply
-    });
-    options.langs = await utils.readInput({
-        msg: t("prompt_langs"),
-        defaultValue: args.langs || "en", mandatory, autoReply
-    });
-    const langs = utils.parseLangs(options.langs);
-    if (langs.length === 0) {
-        errors.push(`No legal language specified`);
-    }
-    options.defaultLocale = await utils.readInput({
-        msg: t("prompt_locale"), mandatory,
-        defaultValue: options.defaultLocale || langs[0], autoReply
-    });
-    if (!options.defaultLocale || !langs.includes(options.defaultLocale)) {
-        errors.push(`Invalid default locale "${options.defaultLocale}"`);
-    }
-    console.log(t("prompt_print"));
-    console.log(stringify(options));
-    if (errors.length) {
-        console.log(t("err_config"));
-        console.log(errors.join('\n'));
-    }
-    if (!autoReply) {
-        const again = await utils.confirm(t("prompt_edit"), Boolean(errors.length));
-        if (again) {
-            console.log(t("prompt_restart"));
-            return getConfiguration(options, false);
-        }
-    }
-    return errors.length ? errorResult(errors.join('\n')) : successResult(options);
-}
-/**
- * Interactively read the full configuration, providing the values in args as defaults
- * @param args
- * @param autoReply if true, don't prompt the user for input, use the provided values
- * @returns either error or a full configuration
- */
-async function getContentConfiguration(args, autoReply) {
-    const options = {};
-    autoReply = autoReply === true;
-    const errors = [];
-    if (!autoReply) {
-        console.log(t("content_instructions"));
-    }
-    if (!args.path) {
-        options.repository = await utils.readInput({
-            msg: t("prompt_repo"), defaultValue: args.repository, autoReply
-        });
-    }
-    if (!options.repository) {
-        options.path = await utils.readInput({
-            msg: t("prompt_path"), defaultValue: args.path, autoReply
-        });
-    }
-    if (options.repository && options.path) {
-        errors.push("Can't specify both path and repository");
-    }
-    if (options.path) {
-        const fullPath = path_1.default.resolve(PROJECT_ROOT, options.path);
-        if (!await utils.isFolder(fullPath)) {
-            errors.push(`Content path ${options.path} not found (${fullPath})`);
-        }
-    }
-    if (options.repository) {
-        options.branch = await utils.readInput({
-            msg: t("prompt_branch"),
-            defaultValue: args.branch, autoReply
-        });
-    }
-    else if (args.branch) {
-        errors.push(`You specified branch ${args.branch} without a site repository`);
-    }
-    console.log(t("prompt_print"));
-    console.log(stringify(options));
-    if (errors.length) {
-        console.log(t("err_config"));
-        console.log(errors.join('\n'));
-    }
-    if (!autoReply) {
-        const again = await utils.confirm(t("prompt_edit"), Boolean(errors.length));
-        if (again) {
-            console.log(t("prompt_restart"));
-            return getContentConfiguration(options);
-        }
-    }
-    return errors.length ? errorResult(errors.join('\n')) : successResult({
-        ...options,
-        clean: args.clean === true
-    });
-}
-/**
- *
- * @param config yaspp configuration, probably loaded from yaspp.config.json
- * @param sitePath full path of the folder into which the site was cloned/copied
- * @param navPath the RELATIVE path of the nav file
- * @returns
- */
-function adaptConfigToPath(config, paths) {
-    const root = paths.site ? utils.diffPaths(paths.target, paths.site) : "";
-    function addRoot(path) {
-        return path && root ? `${root}/${path}` : path;
-    }
-    const ret = {
-        content: {
-            ...config.content,
-            root: addRoot(config.content.root),
-        },
-        nav: {
-            index: paths.nav
-        },
-        locale: {
-            ...config.locale,
-            root: addRoot(config.locale.root)
-        }
-    };
-    if (config.assets?.root) {
-        ret.assets = {
-            ...config.assets,
-            root: addRoot(config.assets.root)
-        };
-    }
-    if (config.style?.root) {
-        ret.style = {
-            ...config.style,
-            root: addRoot(config.style.root)
-        };
-    }
-    return ret;
 }
 /**
  * Loads versions of required tools
@@ -316,9 +90,9 @@ async function loadTools() {
     }
     return ret;
 }
-async function cloneYaspp(target, dry) {
+async function cloneYaspp(target, branch, dry) {
     const yRes = await utils.cloneRepository({
-        url: YASPP_REPO_URL, branch: "master", dry, parentFolder: target
+        url: YASPP_REPO_URL, branch, dry, parentFolder: target
     });
     return yRes.error ?
         `Clone error: ${yRes.error}` : "";
@@ -339,37 +113,11 @@ async function copyDefaultSite(target, dry) {
     const copyErr = await utils.copyFolderContent(srcFolder, trgFolder);
     return copyErr ? errorResult(copyErr) : successResult(trgFolder);
 }
-/**
- * Clones/Copies the content and generates yaspp.config.json
- * @param options
- * @param dry
- * @returns
- */
-async function copySiteContent(options, target, dry = false) {
-    if (options.path) {
-        const copyRes = await copyContent(options.path, target, dry);
-        return copyRes;
-    }
-    else if (options.repository) {
-        const cloneRes = await utils.cloneRepository({
-            url: options.repository,
-            parentFolder: target,
-            branch: options.branch,
-            dry,
-            folderName: SITE_FOLDER
-        });
-        return cloneRes;
-    }
-    else { // no repo or content folder
-        return await copyDefaultSite(target, dry);
-    }
-    // const finalOptions = adaptOptionsToPath(options, contentPath);
-}
 async function finalizeProject({ target, tools, dryrun, siteFolder }) {
     if (!tools.yarn && !tools.npm) {
         return "neither yarn nor npm available";
     }
-    function toCommandLine(script, argv) {
+    function toCommandLine(script, ...argv) {
         return tools.yarn ? {
             exe: "yarn",
             argv: [script].concat(argv)
@@ -381,7 +129,7 @@ async function finalizeProject({ target, tools, dryrun, siteFolder }) {
     const onData = true, onError = true;
     const installRes = await utils.captureProcessOutput({
         cwd: path_1.default.resolve(target, "yaspp"), onData, onError, dryrun, onProgress: true,
-        ...toCommandLine("install", [])
+        ...toCommandLine("install")
     });
     if (installRes.status) {
         return `Failed to run yarn/npm`;
@@ -396,20 +144,12 @@ async function finalizeProject({ target, tools, dryrun, siteFolder }) {
     }
     return "";
 }
-async function generateFiles(target, options, dry) {
+async function generateFiles(target, dry) {
     const errors = [];
-    try {
-        console.log(`Generating ${SAVED_CONFIG}`);
-        if (options && !dry) {
-            await fs_1.promises.writeFile(path_1.default.resolve(target, SAVED_CONFIG), stringify(options));
-        }
-    }
-    catch (err) {
-        errors.push(`Error saving config to ${SAVED_CONFIG}: ${err}`);
-    }
     const copies = [
         { tmpl: "gitignore", path: ".gitignore" },
         { tmpl: "package.json", path: "package.json" },
+        { tmpl: YASPP_CONFIG, path: YASPP_CONFIG },
     ];
     for await (const { path, tmpl } of copies) {
         const filePath = path_1.default.resolve(target, path);
@@ -430,14 +170,11 @@ async function generateFiles(target, options, dry) {
     }
     return errors.join('\n');
 }
-async function verifyTarget(target, { dryrun = false, content = true }) {
+async function verifyTarget(target, { dryrun = false }) {
     if (!dryrun) {
         if (await utils.mkdir(target)) {
             return `Failed to find or create target folder ${target}`;
         }
-    }
-    if (content === false) {
-        return "";
     }
     const emptyRes = await utils.isEmpty(target, false);
     if (emptyRes.error) {
@@ -475,7 +212,7 @@ function validateSiteConfig(config) {
         Object.assign(ret, { assets: { root: config.assets.root } });
     }
     if (config.style?.root) {
-        Object.assign(ret, { style: { root: config.style.root, index: config.style.index } });
+        Object.assign(ret, { style: { root: config.style.root, sheets: config.style.sheets } });
     }
     return ret;
 }
@@ -491,25 +228,8 @@ async function loadConfigFromProject(sitePath, autoReply) {
     }
     return siteConfig;
 }
-async function verifySiteNav({ projectRoot, sitePath, config, dry }) {
-    if (!sitePath) {
-        return "";
-    }
-    const relPath = config?.nav?.index || YASPP_NAV, navPath = path_1.default.resolve(sitePath, relPath);
-    const data = await utils.readJSON(navPath);
-    if (data || dry) {
-        return data ? navPath : "";
-    }
-    const tmpl = await utils.getTemplate("nav.json");
-    if (!tmpl) {
-        return "";
-    }
-    const trgPath = path_1.default.resolve(projectRoot, YASPP_NAV);
-    const success = await utils.writeFile(trgPath, tmpl);
-    return success ? trgPath : "";
-}
 async function main(args) {
-    const { dryrun: dry, version, help, autoReply = false, refresh = false, config, content, ...rest } = args;
+    const { dryrun: dry = false, version, help, branch = "master" } = args;
     // console.log("create yaspp", args);
     if (help) {
         console.log(t("help"));
@@ -528,75 +248,30 @@ async function main(args) {
     if (!tools.git || !tools.yarn) {
         return t("err_tools");
     }
-    let options = null;
-    let siteConfig = null;
-    const noContent = content === false;
-    if (config || refresh) {
-        const configPath = path_1.default.resolve(PROJECT_ROOT, config || SAVED_CONFIG);
-        console.log(`Loading configuration from ${config || SAVED_CONFIG}`);
-        options = await utils.readJSON(configPath);
-        if (!options) {
-            return `${t("err_config_file")} ${utils.trimPath(configPath)}`;
-        }
-    }
     const target = path_1.default.resolve(PROJECT_ROOT, args.target || ".");
     const targetErr = await verifyTarget(target, args);
     if (targetErr) {
         return targetErr;
     }
-    const siteConfigResult = await getContentConfiguration(options || rest, autoReply || refresh);
-    if (siteConfigResult.error) {
-        return siteConfigResult.error;
-    }
-    const contentOptions = siteConfigResult.result;
-    const siteRes = await copySiteContent(contentOptions, target, dry || noContent);
+    // const siteConfigResult = await getContentConfiguration(options || rest, autoReply || refresh);
+    const siteRes = await copyDefaultSite(target, dry);
     if (siteRes.error) {
         return siteRes.error;
     }
-    if (refresh) { // refresh content only, done in  copySiteContent
-        return "";
-    }
     const sitePath = siteRes.result;
-    if (!options) {
-        siteConfig = await loadConfigFromProject(sitePath, autoReply);
-    }
-    if (!siteConfig) {
-        const validResult = await getConfiguration(options || rest, autoReply || refresh);
-        if (validResult.error) {
-            return validResult.error;
-        }
-        options = {
-            ...validResult.result,
-            ...contentOptions
-        };
-    }
-    const yspErr = await cloneYaspp(target, dry || noContent);
+    const yspErr = await cloneYaspp(target, branch, dry);
     if (yspErr) {
         return yspErr;
     }
-    const fullNavPath = await verifySiteNav({
-        projectRoot: target,
-        sitePath,
-        config: siteConfig,
-        dry
-    });
-    if (!fullNavPath) {
-        return `Failed to create site navigation file ${YASPP_NAV}`;
-    }
-    const navPath = utils.diffPaths(target, fullNavPath);
-    const finalConfig = options ? optionsToConfig(options, navPath) : adaptConfigToPath(siteConfig, {
-        site: sitePath, nav: navPath, target
-    });
-    const genRes = await generateYaspp(target, finalConfig, dry);
-    if (genRes.error) {
-        return genRes.error;
+    const gErr = await generateFiles(target, dry);
+    if (gErr) {
+        return `Failed to generate files: ${gErr}`;
     }
     const fErr = await finalizeProject({
         target, tools, dryrun: dry === true, siteFolder: sitePath
     });
-    const gErr = await generateFiles(target, options, dry);
-    if (fErr || gErr) {
-        console.error([t("err_partial_setup"), fErr, gErr].filter(Boolean).join('\n'));
+    if (fErr) {
+        console.error(`Project created by running yassp failed: ${fErr}`);
     }
     if (!dry) {
         utils.exploreToFile(target);
@@ -604,9 +279,13 @@ async function main(args) {
     return "";
 }
 const WIN_DEVICE_RE = /^([A-Z]):[\\\/]+/i; // eslint-disable-line no-useless-escape
+const GIT_URL_RE = /(?:git|ssh|https?|git@[-\w.]+):(\/\/)?(.*?)(\.git)(\/?|\#[-\d\w._]+?)$/;
 class CYSUtils {
     constructor() {
         this._dictionary = new Map();
+    }
+    isGitUrl(url) {
+        return GIT_URL_RE.test(url ?? "");
     }
     async getTemplate(name) {
         const tmplPath = path_1.default.resolve(CSY_ROOT, "data/templates", `${name}.tmpl`);
@@ -1065,7 +744,7 @@ class CYSUtils {
                 break;
         }
         try {
-            (0, child_process_1.spawn)(cmd, [path], { detached: true });
+            (0, child_process_1.spawn)(cmd, [path]);
             return true;
         }
         catch (e) {
@@ -1077,25 +756,22 @@ const utils = new CYSUtils();
 const unknownArgs = [];
 const args = (0, minimist_1.default)(process.argv.slice(2), {
     alias: {
-        R: "repository",
-        P: "path",
         D: "dryrun",
         V: "version",
         T: "target",
+        B: "branch",
         "autoReply": "auto",
-        defaultLocale: "default-locale",
-        contentRoot: "content-root",
-        contentIndex: "content-index",
-        localeRoot: "locale-root",
-        assetsRoot: "assets-root",
-        styleRoot: "style-root",
-        styleIndex: "style-index",
+        // defaultLocale: "default-locale",
+        // contentRoot: "content-root",
+        // contentIndex: "content-index",
+        // localeRoot: "locale-root",
+        // assetsRoot: "assets-root",
+        // styleRoot: "style-root",
+        // styleSheets: "style-sheets",
     },
-    "boolean": ["content", "version", "dryrun", "help", "refresh", "auto"],
-    "default": { target: ".", dry: false, "default-locale": "en", "content": true },
-    "string": ["config", "target", "repository", "path", "branch", "langs",
-        "content-root", "content-index", "locale-root", "assets-root",
-        "style-root", "style-index"],
+    "boolean": ["version", "dryrun", "help", "auto"],
+    "default": { target: ".", dryrun: false, "auto": false },
+    "string": ["target", "branch"],
     "unknown": (s) => {
         const isArg = s.charAt(0) === "-";
         if (isArg) {
