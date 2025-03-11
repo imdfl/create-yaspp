@@ -1061,8 +1061,8 @@ wrappy@1:
   integrity sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==
 
 "yaspp-types@git+ssh://git@github.com:imdfl/yaspp-types.git":
-  version "1.0.2"
-  resolved "git+ssh://git@github.com:imdfl/yaspp-types.git#8445685aae290f8a7683624d3f483db4c5c418fb"
+  version "1.0.3"
+  resolved "git+ssh://git@github.com:imdfl/yaspp-types.git#bba54d3c09864e1dfe40d35ea683ec388be22d0d"
 
 yn@3.1.1:
   version "3.1.1"

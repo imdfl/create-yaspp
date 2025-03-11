@@ -6,21 +6,21 @@ export type Mutable<T> = {
   };
 
 export interface ICSYPSiteOptions {
-	readonly site: string;
+	// readonly site: string;
     readonly branch: string;
-	readonly clean: boolean;
+	// readonly clean: boolean;
 }
 
 export interface ICYSPOptions extends ICSYPSiteOptions{
 	readonly target: string;
-    readonly contentRoot: string;
-    readonly contentIndex: string;
-    readonly localeRoot: string;
-    readonly styleRoot?: string;
-    readonly styleIndex?: string;
-    readonly assetsRoot?: string;
-    readonly langs?: string;
-    readonly defaultLocale?: string;
+    // readonly contentRoot: string;
+    // readonly contentIndex: string;
+    // readonly localeRoot: string;
+    // readonly styleRoot?: string;
+    // readonly styleSheets?: string;
+    // readonly assetsRoot?: string;
+    // readonly langs?: string;
+    // readonly defaultLocale?: string;
 }
 
 
@@ -28,10 +28,10 @@ export interface ICYSPArgv extends Partial<ICYSPOptions> {
 	readonly dryrun: boolean;
 	readonly help: boolean;
 	readonly version: boolean;
-	readonly config: string;
+	// readonly config: string;
 	readonly autoReply: boolean;
-	readonly refresh: boolean;
-	readonly content: boolean;
+	// readonly refresh: boolean;
+	// readonly content: boolean;
 }
 
 export interface ICloneOptions {
