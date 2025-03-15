@@ -1,8 +1,7 @@
 node_modules/
 package-lock.json
 **/*.log
-yaspp
-yaspp*.json
+/yaspp/**/*
+!yaspp/README.md
 **/*.map
 site
-.vscode/settings.json

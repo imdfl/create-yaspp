@@ -1060,9 +1060,9 @@ wrappy@1:
   resolved "https://registry.yarnpkg.com/wrappy/-/wrappy-1.0.2.tgz#b5243d8f3ec1aa35f1364605bc0d1036e30ab69f"
   integrity sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==
 
-"yaspp-types@git+ssh://git@github.com:imdfl/yaspp-types.git":
-  version "1.0.3"
-  resolved "git+ssh://git@github.com:imdfl/yaspp-types.git#bba54d3c09864e1dfe40d35ea683ec388be22d0d"
+"yaspp-types@git+https://github.com/imdfl/yaspp-types.git":
+  version "1.0.6"
+  resolved "git+https://github.com/imdfl/yaspp-types.git#2de6b5eb7963d3e2ba50112eabb9ac62758a07ef"
 
 yn@3.1.1:
   version "3.1.1"

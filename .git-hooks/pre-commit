@@ -8,7 +8,7 @@ echo "Precommit: Compiling before commit"
 echo  "===="
 
 LOGFILE=precommit.log
-npx tsc > $LOGFILE 2>&1
+npx tsc
 RESULT="$?"
 if [  "$RESULT" == "0" ]; then
 	echo "Compiled successfully"

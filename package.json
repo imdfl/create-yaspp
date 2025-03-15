@@ -1,7 +1,7 @@
 {
   "name": "create-yaspp",
   "description": "Yaspp project generator",
-  "version": "1.1.02",
+  "version": "1.1.03",
   "author": "(David *)Frenkiel (imdfl on github)",
   "keywords": [
     "yaspp",
@@ -14,7 +14,7 @@
   "main": "bin/create-yaspp.js",
   "preferGlobal": true,
   "bin": {
-    "yaspp": "./bin/create-yaspp.js"
+    "create-yaspp": "./bin/create-yaspp.js"
   },
   "dependencies": {
     "json5": "^2.2.3",
@@ -23,7 +23,7 @@
     "rimraf": "5",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3",
-    "yaspp-types": "git+ssh://git@github.com:imdfl/yaspp-types.git"
+    "yaspp-types": "git+https://github.com/imdfl/yaspp-types.git"
   },
   "devDependencies": {
     "@types/json5": "^2.2.0",

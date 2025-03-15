@@ -1,4 +1,5 @@
 node_modules
 **/*.map
-yaspp
+/yaspp/**/*
+!yaspp/README.md
 **/*.log

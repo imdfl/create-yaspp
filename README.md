@@ -2,16 +2,17 @@
 Package for creating a [`Yaspp`](https://github.com/imdfl/yaspp) web site
 
 To use this package, you do not need to install it. Simply `cd` to the folder in which you want to create your `yaspp` project
-(preferably an empty one) and run the command `npx create-yaspp`. You can also specify a different project folder. Note that the script **will not proceed** if the project folder is not empty.
+(preferably an empty one) and run the command `npx create-yaspp`. You can also specify a different project folder. Note that the script **will not proceed** if the project contains a file/folder named like an asset that `create-yaspp` needs to copy.
 
     $ npx create-yaspp [...arguments]
 
 ## Command line options
 
 ### Runtime Options
-- `--dryrun`: Dry run. Print all the steps and the resulting configuration.
+- `--dryrun`: Dry run. Print all the steps.
 - `--auto`: If the configuration process involves interaction with the user, then `create-yaspp` will use the values provided in the command line without prompting the user for input.
-- `--target <path/to/target/folder>`: absolute or relative path of the folder in which the project will be created. Defaults to current working directory. **The target directory must be empty**.
+- `--target <path/to/target/folder>`: absolute or relative path of the folder in which the project will be created. Defaults to current working directory. **The target directory should not contain** any file or folder named like an asset that the script needs to create.
+- `--no-install`: Don't make the sample site publish-ready by running the initialization scripts in it. You can perform this step yourself by running `yarn init-clean` or `yarn init-site` in the created project folder.
 
 ### Project Configuration Options
 
@@ -20,14 +21,12 @@ To use this package, you do not need to install it. Simply `cd` to the folder in
 
 ## Install procedure
 
-The rest of this document uses the `yarn` command. You can replace it with your favorite package runner, e.g. `npm run ...`.
+The rest of this document uses the `yarn` command. You can replace it with your favorite package runner, e.g. `npm run ...`. However, the tool
+itself requires `yarn` to run properly.
 
 After the command line options are validated, `create-yaspp` performs the following actions:
-1. Create a sample site in the `site` folder under the project folder.
-2. Clone the [`Yaspp`](https://github.com/imdfl/yaspp) project into the `yaspp` folder
-3. Save the configuration in `yaspp.config.json` under the project root.
-4. Copy default `.gitignore` and `package.json` to the project root, unless these files already exist.
-5. Setup the `yaspp` platform by running the required scripts there.
+1. Create a sample site under the project folder, including sample data and valid configuration files.
+2. if `no-install` was not specified, run `yarn init-clean` in the project folder. This will clone the [`Yaspp`](https://github.com/imdfl/yaspp) repository into the `yaspp` folder and setup the `yaspp` platform by running the required scripts there.
 
 ## Post install
 
