@@ -1,0 +1,123 @@
+{
+    "groups": {
+        "topbar": {
+            "items": [
+                "articles",
+                "contact"
+            ]
+        },
+        "sidebar": {
+            "items": [
+                "articles",
+                "about",
+                "contact"
+            ]
+        },
+        "footer": {
+            "items": [
+                "pages",
+                "links"
+            ]
+        }
+    },
+    "sections": {
+        "articles": {
+            "title": "nav:sections:articles:label",
+            "locale": {},
+            "items": [
+                "first",
+                "second"
+            ]
+        },
+        "contact": {
+            "title": "nav:sections:contact:label",
+            "locale": {},
+            "items": [
+                "contact",
+                "twitter",
+                "github"
+            ]
+        },
+        "about": {
+            "title": "nav:sections:about:label",
+            "locale": {},
+            "items": [
+                "about"
+            ]
+        },
+        "pages": {
+            "title": "common:footer:sections:pages:label",
+            "locale": {},
+            "items": [
+                "about",
+                "first"
+            ]
+        },
+        "links": {
+            "title": "common:footer:sections:links:label",
+            "locale": {},
+            "items": [
+                "contact",
+                "twitter",
+                "github"
+            ]
+        }
+    },
+    "items": {
+        "first": {
+            "type": "article",
+            "url": "/docs/doc1",
+            "icon": "article",
+            "title": "nav:items:articles:1:label",
+            "locale": {
+                "author": "authors:yaspp"
+            }
+        },
+        "twitter": {
+            "type": "external",
+            "url": "https://x.com",
+            "icon": "𝕏",
+            "title": "nav:items:links:twitter:label",
+            "locale": {
+                "description": "nav:items:links:twitter:desc"
+            }
+        },
+        "second": {
+            "type": "article",
+            "url": "/docs/doc2",
+            "icon": "file-text",
+            "title": "nav:items:articles:2:label",
+            "locale": {
+                "author": "authors:yaspp"
+            }
+        },
+        "about": {
+            "type": "page",
+            "url": "/about",
+            "icon": "?",
+            "title": "nav:items:pages:about:label",
+            "locale": {
+                "description": "nav:items:pages:about:desc"
+            }
+        },
+        "contact": {
+            "type": "page",
+            "url": "/contact",
+            "icon": "email",
+            "title": "nav:items:pages:contact:label",
+            "locale": {
+                "description": "nav:items:pages:contact:desc"
+            }
+        },
+        "github": {
+            "type": "external",
+            "url": "https://github.com/imdfl/yaspp",
+            "icon": "github",
+            "target": "_blank",
+            "title": "nav:items:links:github:label",
+            "locale": {
+                "description": "nav:items:links:github:desc"
+            }
+        }
+    }
+}

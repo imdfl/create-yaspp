@@ -1,0 +1,17 @@
+{
+  "name": "yaspp-site",
+  "description": "Yaspp site project",
+  "version": "1.0.0",
+  "license": "UNLICENSED",
+  "scripts": {
+    "preinit-site": "cd yaspp && yarn",
+    "init-site": "cd yaspp && npx --yes ts-node src/scripts/init-yaspp --project ..",
+    "preinit-clean": "yarn save-yaspp && git clone --branch master --single-branch https://github.com/imdfl/yaspp.git && yarn restore-yaspp",
+    "init-clean": "yarn init-site",
+    "dev": "cd yaspp && yarn dev",
+    "build": "cd yaspp && yarn build",
+    "start": "cd yaspp && yarn start",
+    "save-yaspp": "rm -rf yaspp/*",
+    "restore-yaspp": "echo stub > yaspp/yaspp.stub"
+  }
+}
