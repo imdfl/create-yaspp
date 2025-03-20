@@ -20,12 +20,15 @@
 		"If there's a default value, Enter one or more spaces to set an empty value."
 	],
 	"post_instructions": [
-		"Your project is set up in the target folder.",
+		"Your project is set up in the target folder ${target}.",
 		"We suggest that you commit the result to a repository BEFORE testing the site.",
 		"To test it, open a terminal in that folder and run:",
-		"$ yarn init-clean",
+		"  $ yarn init-clean",
 		"Followed by",
-		"$ yarn dev"
+		"  $ yarn dev",
+		"To build your site, run:",
+		"  $ yarn build",
+		"The result is a publish-ready Next.js site"
 	],
 	"dry_run": "===yaspp dry run===",
 	"prompt_print": "This is the current configuration:",
@@ -42,5 +45,6 @@
 	"err_tools": "Create-yaspp requires git and yarn to run properly",
 	"err_fileexists": "File ${file} exists in target folder ${target}.\nPlease remove this file/folder or try a different target folder (preferably empty)",
 	"err_config_file": "Config file not found or invalid",
-	"err_partial_setup": "The project is set up but some final operations failed"
+	"err_partial_setup": "The project is set up but some final operations failed",
+	"err_finalize": "Yaspp Project initialization failed, but the default site has been copied to the target folder and you can set it up manually."
 }

@@ -82,20 +82,8 @@ async function cloneYaspp(target, branch, dry) {
  */
 async function copyDefaultSite(target, dry) {
     const srcFolder = utils.getSampleSitePath();
-    const copyErr = await utils.copyFolderContent(srcFolder, target);
+    const copyErr = await utils.copyFolderContent({ source: srcFolder, target, clean: false });
     return copyErr;
-}
-async function copyDefaultSite1(target, dry) {
-    const trgFolder = path_1.default.resolve(target, SITE_FOLDER);
-    if (!utils.isEmpty(trgFolder, false)) {
-        return successResult(trgFolder);
-    }
-    if (dry) {
-        return successResult(trgFolder);
-    }
-    const srcFolder = path_1.default.resolve(__dirname, "../data/sample-site");
-    const copyErr = await utils.copyFolderContent(srcFolder, trgFolder);
-    return copyErr ? errorResult(copyErr) : successResult(trgFolder);
 }
 async function finalizeProject({ target, tools, dryrun }) {
     if (!tools.yarn) {
@@ -112,65 +100,6 @@ async function finalizeProject({ target, tools, dryrun }) {
     }
     return "";
 }
-async function finalizeProject1({ target, tools, dryrun }) {
-    if (!tools.yarn && !tools.npm) {
-        return "neither yarn nor npm available";
-    }
-    function toCommandLine(script, ...argv) {
-        return tools.yarn ? {
-            exe: "yarn",
-            argv: [script].concat(argv)
-        } : {
-            exe: "npm",
-            argv: ["run", script].concat(argv)
-        };
-    }
-    const onData = true, onError = true;
-    const yasppPath = path_1.default.resolve(target, "yaspp");
-    const installRes = await utils.captureProcessOutput({
-        cwd: yasppPath, onData, onError, dryrun, onProgress: true,
-        ...toCommandLine("install")
-    });
-    if (installRes.status) {
-        return `Failed to run yarn/npm: ${installRes.errors}`;
-    }
-    const initRes = await utils.captureProcessOutput({
-        exe: "npx", onData, onError, dryrun,
-        cwd: yasppPath,
-        argv: ["ts-node", "src/scripts/init-yaspp", "--project", "."]
-    });
-    if (initRes.status) {
-        return `Failed to run init-yaspp: ${initRes.errors}`;
-    }
-    return "";
-}
-// async function generateFiles(target: string, dry?: boolean): Promise<ErrorMessage> {
-// 	const errors = [] as string[];
-// 	const copies = [
-// 		{ tmpl: "gitignore", path: ".gitignore" },
-// 		{ tmpl: "package.json", path: "package.json" },
-// 		{ tmpl: "yaspp.stub", path: "yaspp/yaspp.stub" },
-// 		{ tmpl: YASPP_CONFIG, path: YASPP_CONFIG },
-// 	];
-// 	for await (const { path, tmpl } of copies) {
-// 		const filePath = fsPath.resolve(target, path);
-// 		if (!await utils.isFileOrFolder(filePath)) {
-// 			const tmplData = await utils.getTemplate(tmpl);
-// 			if (!tmplData) {
-// 				errors.push(`Can't find ${path} template`);
-// 			}
-// 			else {
-// 				console.log(`Generating ${path}`);
-// 				if (!dry) {
-// 					if (!await utils.writeFile(filePath, tmplData)) {
-// 						errors.push(`Failed to save ${path}`)
-// 					}
-// 				}
-// 			}
-// 		}
-// 	}
-// 	return errors.join('\n');
-// }
 async function verifyTarget(target, { dryrun = false }) {
     if (!dryrun) {
         if (await utils.mkdir(target)) {
@@ -261,26 +190,18 @@ async function main(args) {
     if (targetErr) {
         return targetErr;
     }
-    // const siteConfigResult = await getContentConfiguration(options || rest, autoReply || refresh);
     const siteErr = await copyDefaultSite(target, dry);
     if (siteErr) {
         return siteErr;
     }
-    // const yspErr = await cloneYaspp(target, branch, dry);
-    // if (yspErr) {
-    // 	return yspErr;
-    // }
-    // const gErr = await generateFiles(target, dry);
-    // if (gErr) {
-    // 	return `Failed to generate files: ${gErr}`;
-    // }
-    if (install) {
-        const fErr = await finalizeProject({
-            target, tools, dryrun: dry === true
-        });
-        if (fErr) {
-            console.error(`Project created by running yassp failed: ${fErr}`);
-        }
+    const fErr = install ? await finalizeProject({
+        target, tools, dryrun: dry === true
+    }) : "";
+    if (fErr) {
+        console.error(t("err_finalize"), String(fErr));
+    }
+    else {
+        console.log(t("post_instructions", { target }));
     }
     if (!dry) {
         utils.exploreToFile(target);
@@ -400,31 +321,35 @@ class CYSUtils {
     }
     /**
      * Returns an error message, if any
-     * @param srcPath
-     * @param targetPath
+     * @param source
+     * @param target
      */
-    async copyFolderContent(srcPath, targetPath) {
-        if (!await this.isFolder(srcPath)) {
-            return `Folder ${srcPath} not found`;
+    async copyFolderContent({ source, target, clean }) {
+        if (!await this.isFolder(source)) {
+            return `Folder ${source} not found`;
         }
-        let err = await this.mkdir(targetPath);
+        let err = await this.mkdir(target);
         if (err) {
             return err;
         }
-        if (targetPath.indexOf(srcPath) === 0) {
-            return `Circular copy: ${srcPath} into ${targetPath}`;
+        if (target.indexOf(source) === 0) {
+            return `Circular copy: ${source} into ${target}`;
         }
         // clean up old files
         async function rmTarget() {
-            await utils.removeFolder({ path: targetPath, removeRoot: false });
+            await utils.removeFolder({ path: target, removeRoot: false });
         }
         try {
-            await rmTarget();
-            const list = await fs_1.promises.readdir(srcPath, { withFileTypes: true });
+            if (clean) {
+                await rmTarget();
+            }
+            const list = await fs_1.promises.readdir(source, { withFileTypes: true });
             for await (const dirent of list) {
-                const srcChild = path_1.default.resolve(srcPath, dirent.name), trgChild = path_1.default.resolve(targetPath, dirent.name);
+                const srcChild = path_1.default.resolve(source, dirent.name), trgChild = path_1.default.resolve(target, dirent.name);
                 if (dirent.isDirectory()) {
-                    const childErr = await this.copyFolderContent(srcChild, trgChild);
+                    const childErr = await this.copyFolderContent({
+                        source: srcChild, target: trgChild, clean: true
+                    });
                     if (childErr) {
                         await rmTarget();
                         return childErr;
@@ -438,7 +363,7 @@ class CYSUtils {
         }
         catch (err) {
             await rmTarget();
-            return `copy failed (${srcPath} to ${targetPath}:\n${err}`;
+            return `copy failed (${source} to ${target}:\n${err}`;
         }
     }
     async captureProcessOutput({ cwd, exe, argv, env, onData, onError, dryrun, quiet, onProgress, shell }) {
