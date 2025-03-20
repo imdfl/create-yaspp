@@ -23,7 +23,6 @@ const CSY_ROOT = fsPath.resolve(__dirname, "..");
 const PROJECT_ROOT = process.cwd();
 const YASPP_REPO_URL = "git@github.com:imdfl/yaspp.git";
 const YASPP_CONFIG = "yaspp.config.json";
-const SITE_FOLDER = "site";
 
 function errorResult<T>(err: string): IResponse<T> {
 	return {
@@ -37,10 +36,21 @@ function successResult<T>(result: T): IResponse<T> {
 	}
 }
 
-function stringify<T extends object>(obj: T): string {
-	return JSON.stringify(obj, null, '\t')
+const logger = {
+	_log: true,
+	_verbose: false,
+	log(...args: string[]): void {
+		if (this._log) {
+			console.log(...args);
+		}
+	},
+	verbose(...args: string[]): void {
+		if (this._verbose) {
+			console.log(...args);
+		}
+	}
+	
 }
-
 /**
  * Translate one string
  * @param key 
@@ -71,6 +81,7 @@ async function loadTools(): Promise<Record<string, string>> {
 	const ret: Record<string, string> = {};
 	const tools = ["git", "yarn", "npm", "npx"];
 	for await (const tool of tools) {
+		logger.verbose(`Testing tool ${tool}`);
 		const res = await utils.captureProcessOutput({
 			exe: tool,
 			quiet: true,
@@ -84,22 +95,14 @@ async function loadTools(): Promise<Record<string, string>> {
 
 }
 
-async function cloneYaspp(target: string, branch: string, dry?: boolean): Promise<ErrorMessage> {
-	const yRes = await utils.cloneRepository({
-		url: YASPP_REPO_URL, branch, dry, parentFolder: target
-	});
-	return yRes.error ?
-		`Clone error: ${yRes.error}` : ""
-}
-
 /**
  * Copies the included sample site to the target folder
  * @param target
  */
 async function copyDefaultSite(target: string, dry?: boolean): Promise<ErrorMessage> {
 	const srcFolder = utils.getSampleSitePath();
-
-	const copyErr = await utils.copyFolderContent({ source: srcFolder, target, clean: false });
+	logger.verbose(`Copying default site to ${target}`);
+	const copyErr = dry ? "" : await utils.copyFolderContent({ source: srcFolder, target, clean: false });
 	return copyErr;
 }
 
@@ -204,19 +207,20 @@ async function loadConfigFromProject(sitePath: string, autoReply: boolean): Prom
 }
 
 async function main(args: Partial<ICYSPArgv>): Promise<ErrorMessage> {
-	const { install = true, dryrun: dry = false, version, help, branch = "master" } = args;
+	const { verbose, install = true, dryrun: dry = false, version, help } = args;
 	// console.log("create yaspp", args);
+	logger._verbose = verbose === true;
 	if (help) {
-		console.log(t("help"));
+		logger.log(t("help"));
 		exitWith();
 	};
 	if (version) {
 		const ver = await getVersion();
-		console.log(`${t("version_msg")} ${ver.result}`);
+		logger.log(`${t("version_msg")} ${ver.result}`);
 		exitWith();
 	}
 	if (dry) {
-		console.log(t("dry_run"));
+		logger.log(t("dry_run"));
 	}
 	const tools = await loadTools();
 	if (!tools.git || !tools.yarn) {
@@ -238,7 +242,7 @@ async function main(args: Partial<ICYSPArgv>): Promise<ErrorMessage> {
 		console.error(t("err_finalize"), String(fErr));
 	}
 	else {
-		console.log(t("post_instructions", { target }));
+		logger.log(t("post_instructions", { target }));
 	}
 	if (!dry) {
 		utils.exploreToFile(target);
@@ -305,7 +309,7 @@ class CYSUtils {
 	public async cloneRepository({ url, dry, branch, folderName, parentFolder }: ICloneOptions): Promise<IResponse<string>> {
 		const repoName = url.replace(/^.+\/([^\.]+)\.git\s*$/, "$1");
 		const sitePath = fsPath.resolve(parentFolder, folderName || repoName);
-		console.log(`${t("cloning")} ${url} to ${folderName || repoName}`);
+		logger.log(`${t("cloning")} ${url} to ${folderName || repoName}`);
 		if (dry) {
 			return successResult(sitePath);
 		}
@@ -388,13 +392,16 @@ class CYSUtils {
 			await utils.removeFolder({ path: target, removeRoot: false });
 		}
 		try {
+			logger.verbose(`Copying ${source} to ${target}, clean mode ${clean}`);
 			if (clean) {
+				logger.verbose(`Deleting ${target}`);
 				await rmTarget();
 			}
 			const list = await fs.readdir(source, { withFileTypes: true });
 			for await (const dirent of list) {
 				const srcChild = fsPath.resolve(source, dirent.name),
 					trgChild = fsPath.resolve(target, dirent.name);
+				logger.verbose(`Handling ${dirent.name}`);
 				if (dirent.isDirectory()) {
 					const childErr = await this.copyFolderContent({
 						source: srcChild, target: trgChild, clean: true
@@ -406,6 +413,9 @@ class CYSUtils {
 				}
 				else if (dirent.isFile()) {
 					await fs.copyFile(srcChild, trgChild);
+				}
+				else {
+					logger.verbose(`Skipping unknown file ${dirent.name}`);
 				}
 			}
 			return "";
@@ -425,7 +435,7 @@ class CYSUtils {
 			(s: string) => !quiet && console.warn(`>${s}`) : onError;
 
 		const dataCB = (onData === true) ?
-			(s: string) => !quiet && console.log(`>${s}`) : onData;
+			(s: string) => !quiet && logger.log(`>${s}`) : onData;
 
 		const progress = typeof onProgress === "function" ? {
 			callback: onProgress,
@@ -434,13 +444,13 @@ class CYSUtils {
 		} :
 			onProgress === true ? {
 				callback: () => process.stdout.write('.'),
-				cleanup: () => console.log('done'),
+				cleanup: () => logger.log('done'),
 				interval: null as NodeJS.Timeout | null
 			}
 				: null;
 
 		if (!quiet) {
-			console.log(`${t("running")} ${exe} ${argv.join(' ')}`);
+			logger.log(`${t("running")} ${exe} ${argv.join(' ')}`);
 		}
 		if (dryrun) {
 			return {
@@ -791,7 +801,7 @@ const args = parseArgs(process.argv.slice(2), {
 		B: "branch",
 		"autoReply": "auto",
 	},
-	"boolean": ["version", "dryrun", "help", "auto", "install"],
+	"boolean": ["verbose", "version", "dryrun", "help", "auto", "install"],
 	"default": { target: ".", dryrun: false, "auto": false, install: true },
 	"string": ["target", "branch"],
 	"unknown": (s: string) => {

@@ -8,7 +8,7 @@
 			"name": "Sample Site",
 			"type": "node-terminal",
 			"request": "launch",
-			"command": "npx ts-node src/create-yaspp --target /c/temp/sample-yaspp2",
+			"command": "npx ts-node src/create-yaspp --target /c/temp/sample-yaspp2 -- no-install",
 			"env": {
 				"NODE_OPTIONS": "--inspect"
 			}

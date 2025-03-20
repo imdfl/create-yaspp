@@ -15,13 +15,14 @@ export interface ICYSPArgv extends Partial<ICYSPOptions> {
 	readonly help: boolean;
 	readonly version: boolean;
 	readonly autoReply: boolean;
+	readonly verbose: boolean;
 }
 
 export interface ICloneOptions {
 	readonly url: string;
 	readonly folderName?: string;
-	readonly branch?: string;
 	readonly dry?: boolean;
+	readonly branch?: string;
 	/**
 	 * Full path
 	 */
