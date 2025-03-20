@@ -30,4 +30,8 @@ After the command line options are validated, `create-yaspp` performs the follow
 
 ## Post install
 
+**Note**: If you save the result of this setup in a git repository, always make sure that the file `yaspp/README.md` is present. This file
+Doesn't serve any purpose in the site, but it's needed just to keep the `yaspp` folder in the repository. Without it, deployment
+on [Vercel](https://vercel.com) fails.
+
 See the [`Yaspp project`](https://github.com/imdfl/yaspp) for details about building and publishing a `yaspp` site. If the installation completed successfully, you should be able to test your site by running `yarn dev` in the project root or in the `yaspp` folder.

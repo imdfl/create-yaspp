@@ -28,6 +28,12 @@ export interface ICloneOptions {
 	readonly parentFolder: string;
 }
 
+
+export interface ICopyFolderOptions {
+	readonly source: string;
+	readonly target: string;
+	readonly clean: boolean;
+}
 export interface IResponse<T> {
 	readonly result?: T;
 	readonly error?: string;
