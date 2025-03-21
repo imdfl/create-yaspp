@@ -1,6 +1,6 @@
 {
 	"buildCommand": "yarn build",
 	"installCommand": "yarn init-clean",
-	"rootDirector": "yaspp",
+	"rootDirectory": "yaspp",
 	"devCommand": "yarn dev"
 }
