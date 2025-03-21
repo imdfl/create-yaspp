@@ -147,7 +147,8 @@ async function verifyTarget(target: string, {
 		const samplePath = utils.getSampleSitePath();
 		const assets = await fs.readdir(samplePath);
 		for await (const asset of assets) {
-			const fpath = fsPath.resolve(target, asset);
+			const name = utils.transformFileName(asset);
+			const fpath = fsPath.resolve(target, name);
 			const ftype = await utils.getFileType(fpath);
 			if (ftype) {
 				return t("err_fileexists", { file: asset, target });
@@ -401,8 +402,8 @@ class CYSUtils {
 			for await (const dirent of list) {
 				const srcChild = fsPath.resolve(source, dirent.name),
 					trgChild = fsPath.resolve(target, dirent.name);
-				logger.verbose(`Handling ${dirent.name}`);
 				if (dirent.isDirectory()) {
+					logger.verbose(`Copying folder ${dirent.name}`);
 					const childErr = await this.copyFolderContent({
 						source: srcChild, target: trgChild, clean: true
 					});
@@ -412,7 +413,8 @@ class CYSUtils {
 					}
 				}
 				else if (dirent.isFile()) {
-					await fs.copyFile(srcChild, trgChild);
+					logger.verbose(`Copying file ${dirent.name}`);
+					await fs.copyFile(srcChild, this.transformFileName(trgChild));
 				}
 				else {
 					logger.verbose(`Skipping unknown file ${dirent.name}`);
@@ -425,6 +427,18 @@ class CYSUtils {
 			return `copy failed (${source} to ${target}:\n${err}`;
 		}
 
+	}
+
+	/**
+	 * Converts a file path to the final path used in the target folder. Used to work around
+	 * npm ignoring .gitignore and maybe other dot files
+	 * @param path 
+	 * @returns 
+	 */
+	public transformFileName(path: string): string {
+		const dir = fsPath.dirname(path),
+			name = fsPath.basename(path).replace(/^dot\./i, '.');
+		return dir && dir !== '.' ? fsPath.join(dir, name) : name;
 	}
 
 	public async captureProcessOutput(

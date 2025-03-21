@@ -115,7 +115,8 @@ async function verifyTarget(target, { dryrun = false }) {
         const samplePath = utils.getSampleSitePath();
         const assets = await fs_1.promises.readdir(samplePath);
         for await (const asset of assets) {
-            const fpath = path_1.default.resolve(target, asset);
+            const name = utils.transformFileName(asset);
+            const fpath = path_1.default.resolve(target, name);
             const ftype = await utils.getFileType(fpath);
             if (ftype) {
                 return t("err_fileexists", { file: asset, target });
@@ -354,8 +355,8 @@ class CYSUtils {
             const list = await fs_1.promises.readdir(source, { withFileTypes: true });
             for await (const dirent of list) {
                 const srcChild = path_1.default.resolve(source, dirent.name), trgChild = path_1.default.resolve(target, dirent.name);
-                logger.verbose(`Handling ${dirent.name}`);
                 if (dirent.isDirectory()) {
+                    logger.verbose(`Copying folder ${dirent.name}`);
                     const childErr = await this.copyFolderContent({
                         source: srcChild, target: trgChild, clean: true
                     });
@@ -365,7 +366,8 @@ class CYSUtils {
                     }
                 }
                 else if (dirent.isFile()) {
-                    await fs_1.promises.copyFile(srcChild, trgChild);
+                    logger.verbose(`Copying file ${dirent.name}`);
+                    await fs_1.promises.copyFile(srcChild, this.transformFileName(trgChild));
                 }
                 else {
                     logger.verbose(`Skipping unknown file ${dirent.name}`);
@@ -377,6 +379,16 @@ class CYSUtils {
             await rmTarget();
             return `copy failed (${source} to ${target}:\n${err}`;
         }
+    }
+    /**
+     * Converts a file path to the final path used in the target folder. Used to work around
+     * npm ignoring .gitignore and maybe other dot files
+     * @param path
+     * @returns
+     */
+    transformFileName(path) {
+        const dir = path_1.default.dirname(path), name = path_1.default.basename(path).replace(/^dot\./i, '.');
+        return dir && dir !== '.' ? path_1.default.join(dir, name) : name;
     }
     async captureProcessOutput({ cwd, exe, argv, env, onData, onError, dryrun, quiet, onProgress, shell }) {
         const errCB = (onError === true) ?
