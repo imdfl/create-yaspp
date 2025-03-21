@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.json": "jsonc",
+        "*.json.tmpl": "jsonc",
+		"package.json": "json"
+    }
+}

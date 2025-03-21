@@ -1,0 +1,23 @@
+{
+	"content": {
+		"root": "site/content",
+		"index": "."
+	},
+	"nav": {
+		"index": "site/nav.json"
+	},
+	"locale": {
+		"root": "site/locales",
+		"langs": ["en"],
+		"pages": {
+			"*": ["authors", "glossary"]
+		}
+	},
+	"assets": {
+		"root": "site/assets"
+	},
+	"style": {
+		"root": "site/styles",
+		"sheets": "site.css"
+	}
+}
